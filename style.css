@@ -534,6 +534,190 @@
       50% { opacity: 0.6; transform: scale(0.97); }
     }
 
+    /* ====== STORY VIEWER ====== */
+    .story-viewer {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .story-viewer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Progress bar */
+    .story-progress {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+    }
+
+    .story-progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .story-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+
+    /* Header */
+    .story-viewer-header {
+      position: absolute;
+      top: 18px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .story-viewer-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .story-viewer-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+    }
+
+    .story-viewer-username {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .story-viewer-close {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.15s ease;
+    }
+
+    .story-viewer-close:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .story-viewer-close svg {
+      width: 24px;
+      height: 24px;
+      color: #ffffff;
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+    }
+
+    /* Image */
+    .story-viewer-img {
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      object-fit: cover;
+      border-radius: 8px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Caption */
+    .story-viewer-caption {
+      position: absolute;
+      bottom: 80px;
+      left: 16px;
+      right: 16px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 500;
+      text-align: center;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+      line-height: 1.5;
+    }
+
+    /* Actions */
+    .story-viewer-actions {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .story-viewer-like {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .story-viewer-like:active {
+      transform: scale(0.85);
+    }
+
+    .story-viewer-like:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .story-viewer-like.liked {
+      animation: storyLikePop 0.35s ease;
+    }
+
+    @keyframes storyLikePop {
+      0% { transform: scale(1); }
+      25% { transform: scale(1.3); }
+      50% { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    /* Tap zones for prev/next */
+    .story-tap-left,
+    .story-tap-right {
+      position: absolute;
+      top: 60px;
+      bottom: 100px;
+      width: 35%;
+      z-index: 5;
+      cursor: pointer;
+    }
+
+    .story-tap-left {
+      left: 0;
+    }
+
+    .story-tap-right {
+      right: 0;
+    }
+
     /* ====== NOTIFICATION POPUP ====== */
     .notif-overlay {
       position: fixed;
