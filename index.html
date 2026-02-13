@@ -66,37 +66,37 @@
         <span class="story-name active">Seu story</span>
       </div>
       <!-- Shelter Stories -->
-      <div class="story-item">
+      <div class="story-item" data-story-index="0" data-story-user="patinhas" data-story-img="./public/images/stories/patinhas.jpg" data-story-caption="Novos filhotes chegaram! Venham conhecer">
         <div class="story-ring">
           <div class="story-avatar av-red">P</div>
         </div>
         <span class="story-name">patinhas</span>
       </div>
-      <div class="story-item">
+      <div class="story-item" data-story-index="1" data-story-user="abrigofeliz" data-story-img="./public/images/stories/abrigofeliz.jpg" data-story-caption="A Neve encontrou um cantinho quentinho hoje">
         <div class="story-ring">
           <div class="story-avatar av-blue">A</div>
         </div>
         <span class="story-name">abrigofeliz</span>
       </div>
-      <div class="story-item">
+      <div class="story-item" data-story-index="2" data-story-user="resgatapet" data-story-img="./public/images/stories/resgatapet.jpg" data-story-caption="Rex aproveitando o dia no parque! Adote o Rex">
         <div class="story-ring">
           <div class="story-avatar av-green">R</div>
         </div>
         <span class="story-name">resgatapet</span>
       </div>
-      <div class="story-item">
+      <div class="story-item" data-story-index="3" data-story-user="sos.animais" data-story-img="./public/images/stories/sosanimais.jpg" data-story-caption="Esses irmaozinhos estao procurando um lar juntos">
         <div class="story-ring">
           <div class="story-avatar av-orange">S</div>
         </div>
         <span class="story-name">sos.animais</span>
       </div>
-      <div class="story-item">
+      <div class="story-item" data-story-index="4" data-story-user="caes.gatos" data-story-img="./public/images/stories/caesgatos.jpg" data-story-caption="Amizade nao tem especie! Adote um amigo">
         <div class="story-ring">
           <div class="story-avatar av-teal">C</div>
         </div>
         <span class="story-name">caes.gatos</span>
       </div>
-      <div class="story-item">
+      <div class="story-item" data-story-index="5" data-story-user="lar.animal" data-story-img="./public/images/stories/laranimal.jpg" data-story-caption="Nosso coelhinho mais fofo esta para adocao!">
         <div class="story-ring seen">
           <div class="story-avatar av-purple">L</div>
         </div>
@@ -513,6 +513,45 @@
       <span class="nav-label">Perfil</span>
     </button>
   </nav>
+
+  <!-- Story Viewer -->
+  <div class="story-viewer" id="storyViewer">
+    <!-- Progress bar -->
+    <div class="story-progress">
+      <div class="story-progress-bar">
+        <div class="story-progress-fill" id="storyProgressFill"></div>
+      </div>
+    </div>
+    <!-- Header -->
+    <div class="story-viewer-header">
+      <div class="story-viewer-user">
+        <div class="story-viewer-avatar" id="storyViewerAvatar"></div>
+        <span class="story-viewer-username" id="storyViewerUsername"></span>
+      </div>
+      <button class="story-viewer-close" id="storyViewerClose" aria-label="Fechar story">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <!-- Image -->
+    <img class="story-viewer-img" id="storyViewerImg" src="" alt="Story">
+    <!-- Caption -->
+    <div class="story-viewer-caption" id="storyViewerCaption"></div>
+    <!-- Like button -->
+    <div class="story-viewer-actions">
+      <button class="story-viewer-like" id="storyViewerLike" aria-label="Curtir story">
+        <svg class="story-heart-icon" viewBox="0 0 24 24" width="28" height="28">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+            fill="none" stroke="#ffffff" stroke-width="2"/>
+        </svg>
+      </button>
+    </div>
+    <!-- Tap zones for navigation -->
+    <div class="story-tap-left" id="storyTapLeft"></div>
+    <div class="story-tap-right" id="storyTapRight"></div>
+  </div>
 
   <!-- Notification Overlay -->
   <div class="notif-overlay" id="notifOverlay">
