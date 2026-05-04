@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AjudaPet - Conectando corações aos animais</title>
+    <meta name="description" content="Plataforma mobile-first para ajudar e adotar animais em situação de rua.">
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="container">
+            <h1 id="app-logo">Ajuda<span>Pet</span></h1>
+            <nav>
+                <a href="pages/login.html" class="btn-login">Entrar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>Animais precisando de você</h2>
+            <p>Veja quem está por perto e mude uma vida hoje.</p>
+        </section>
+
+        <!-- Feed de Animais -->
+        <div id="pet-feed" class="pet-grid">
+            <!-- Os cards serão renderizados via JS -->
+            <div class="loading">Carregando animais...</div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2026 AjudaPet. Feito com amor.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK (Modular) -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

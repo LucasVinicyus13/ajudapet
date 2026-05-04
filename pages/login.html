@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - AjudaPet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+        .auth-form {
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #E1E8ED;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        .btn-submit {
+            background: var(--secondary);
+            color: var(--white);
+            border: none;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-submit:hover {
+            opacity: 0.9;
+        }
+        .auth-footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <main class="container auth-container">
+        <div class="auth-form">
+            <h2 class="pet-name" style="font-size: 2rem; margin-bottom: 1.5rem;">Bem-vindo de volta</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-submit">Entrar</button>
+            </form>
+            <div class="auth-footer">
+                Não tem uma conta? <a href="registro.html">Crie agora</a>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="../index.html" style="color: var(--text-muted); text-decoration: none;">← Voltar para o início</a>
+        </div>
+    </main>
+</body>
+</html>

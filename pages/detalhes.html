@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Pet - AjudaPet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .detail-header {
+            position: relative;
+            height: 350px;
+        }
+
+        .detail-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .btn-back {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--secondary);
+            font-size: 1.5rem;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .detail-content {
+            background: var(--bg-light);
+            margin-top: -30px;
+            border-radius: 30px 30px 0 0;
+            padding: 2rem 1.5rem;
+            position: relative;
+            min-height: 50vh;
+        }
+
+        .detail-info {
+            margin-bottom: 2rem;
+        }
+
+        .detail-status {
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .detail-name {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-city {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-desc-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+        }
+
+        .detail-desc {
+            color: var(--text-dark);
+            line-height: 1.8;
+        }
+
+        .footer-action {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--white);
+            padding: 1.5rem;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <header class="detail-header">
+        <a href="../index.html" class="btn-back">←</a>
+        <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=800" alt="Pet"
+            class="detail-image" id="pet-image">
+    </header>
+
+    <main class="detail-content">
+        <div class="container">
+            <div class="detail-info">
+                <span class="pet-status status-urgente detail-status" id="pet-status">urgente</span>
+                <h1 class="pet-name detail-name" id="pet-name">Thor</h1>
+                <p class="detail-city" id="pet-city">São Paulo, SP</p>
+
+                <h3 class="detail-desc-title">História</h3>
+                <p class="detail-desc" id="pet-desc">
+                    Encontrado debilitado perto da estação. Precisa de ração e cuidados médicos urgentes para se
+                    recuperar de uma fratura na pata. É um cão muito dócil e agradecido.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <div class="footer-action">
+        <div class="container">
+            <button class="btn-ajudar" id="btn-ajudar-detail">
+                AJUDAR AGORA
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Função simples para simular carregamento de dados via URL params futuramente
+        document.getElementById('btn-ajudar-detail').addEventListener('click', () => {
+            const telefone = '5511999999999';
+            const nomePet = document.getElementById('pet-name').innerText;
+            const mensagem = encodeURIComponent(`Olá! Vi o ${nomePet} no AjudaPet e gostaria de saber como posso ajudar.`);
+            window.open(`https://wa.me/${telefone}?text=${mensagem}`, '_blank');
+        });
+    </script>
+</body>
+
+</html>
