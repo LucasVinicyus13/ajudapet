@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil - AjudaPet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-light">
+    <header class="app-header">
+        <div class="container">
+            <h1 id="app-logo">Ajuda<span>Pet</span></h1>
+            <nav id="auth-menu">
+                <a href="login.html" class="btn-login">Entrar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container profile-page">
+        <section class="profile-card">
+            <img id="profile-avatar" class="profile-avatar-large" src="../usuario.png" alt="Foto de perfil">
+            <h2 id="profile-name">Nome do usuário</h2>
+            <p id="profile-email">email@exemplo.com</p>
+
+            <div class="profile-field">
+                <span>Senha</span>
+                <strong>***********</strong>
+            </div>
+
+            <div class="profile-action">
+                <a href="../index.html" class="btn-submit">Voltar para o início</a>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/profile.js"></script>
+</body>
+</html>
