@@ -25,12 +25,34 @@
             <p>Veja quem está por perto e mude uma vida hoje.</p>
         </section>
 
+        <div class="feed-toolbar">
+            <button type="button" class="btn-filter" id="filter-toggle-button">Filtros</button>
+        </div>
+
         <!-- Feed de Animais -->
         <div id="pet-feed" class="pet-grid">
             <!-- Os cards serão renderizados via JS -->
             <div class="loading">Carregando animais...</div>
         </div>
     </main>
+
+    <div id="filter-modal" class="filter-modal" aria-hidden="true">
+        <div class="filter-modal-card">
+            <div class="filter-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">Filtrar por categoria</p>
+                    <h2 class="filter-modal-title">Categorias</h2>
+                </div>
+                <button type="button" class="filter-close" id="filter-close-button" aria-label="Fechar filtros">×</button>
+            </div>
+            <p class="filter-modal-copy">Selecione uma ou mais categorias para ver apenas os animais que combinam.</p>
+            <div id="filter-options-list" class="filter-options-list"></div>
+            <div class="filter-actions">
+                <button type="button" class="btn-filter-secondary" id="filter-clear-button">Limpar</button>
+                <button type="button" class="btn-filter-primary" id="filter-apply-button">Aplicar</button>
+            </div>
+        </div>
+    </div>
 
     <div id="pet-modal" class="pet-modal" aria-hidden="true">
         <div class="pet-modal-card">

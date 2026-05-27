@@ -1,9 +1,25 @@
-import { observeAuthState, listarPets } from './firebase-config.js';
+import { auth, observeAuthState, listarPets } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 
 function redirectToLogin() {
     const loginPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
     window.location.href = loginPath;
+}
+
+async function handleLogout() {
+    try {
+        await auth.signOut();
+        window.location.href = '../index.html';
+    } catch (error) {
+        console.error('Erro ao sair da conta:', error);
+    }
+}
+
+function setupLogoutButton() {
+    const logoutButton = document.getElementById('logout-button');
+    if (!logoutButton) return;
+
+    logoutButton.addEventListener('click', handleLogout);
 }
 
 function renderProfile(user) {
@@ -108,6 +124,7 @@ window.openWhatsapp = openWhatsapp;
 
 window.addEventListener('DOMContentLoaded', () => {
     setupAvatarUpload();
+    setupLogoutButton();
 
     observeAuthState((user) => {
         if (user) {

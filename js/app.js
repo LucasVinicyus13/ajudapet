@@ -80,7 +80,7 @@ const MOCK_PETS = [
         idade: '9 meses',
         cidade: 'Ponta Grossa, PR',
         status: 'adotado',
-        categoria: ['Gatos', 'Pássaros'],
+        categoria: ['Gatos'],
         descricao: 'Gatinho brincalhão resgatado de um canteiro de obras, busca família que o adote com carinho.',
         imagem: './assets/images/sol.jpg',
         telefone: '5541999994444'
@@ -99,6 +99,16 @@ let selectedModalPet = null;
 let categorySelect = null;
 let categorySelectedList = null;
 let categoryOptionsList = null;
+
+let allPets = [];
+let selectedFilterCategories = [];
+let pendingFilterCategories = [];
+let filterButton = null;
+let filterModal = null;
+let filterOptionsList = null;
+let filterApplyButton = null;
+let filterClearButton = null;
+let filterCloseButton = null;
 
 function attachImageFallback(imageElement) {
     if (!imageElement) return;
@@ -191,6 +201,65 @@ function resetCategoryPicker() {
     syncCategoryPicker();
 }
 
+function getFilteredPets(pets) {
+    if (!selectedFilterCategories.length) return pets;
+
+    return pets.filter((pet) => getCategories(pet).some((category) => selectedFilterCategories.includes(category)));
+}
+
+function renderFilteredPets() {
+    const filteredPets = getFilteredPets(allPets);
+    const emptyMessage = selectedFilterCategories.length
+        ? 'Nenhum animal encontrado para os filtros selecionados.'
+        : 'Nenhum animal disponível no momento.';
+    renderPets(sortPetsByUrgency(filteredPets), emptyMessage);
+}
+
+function updateFilterButtonText() {
+    if (!filterButton) return;
+    filterButton.textContent = selectedFilterCategories.length > 0
+        ? `Filtros (${selectedFilterCategories.length})`
+        : 'Filtros';
+}
+
+function renderFilterOptions() {
+    if (!filterOptionsList) return;
+
+    filterOptionsList.innerHTML = '';
+    CATEGORIES.forEach((category) => {
+        const optionRow = document.createElement('label');
+        optionRow.className = 'filter-option-row';
+        optionRow.innerHTML = `
+            <input type="checkbox" value="${category}" ${pendingFilterCategories.includes(category) ? 'checked' : ''}>
+            <span>${category}</span>
+        `;
+        filterOptionsList.appendChild(optionRow);
+    });
+}
+
+function openFilterModal() {
+    if (!filterModal) return;
+
+    pendingFilterCategories = [...selectedFilterCategories];
+    renderFilterOptions();
+    filterModal.classList.add('visible');
+    filterModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeFilterModal() {
+    if (!filterModal) return;
+
+    filterModal.classList.remove('visible');
+    filterModal.setAttribute('aria-hidden', 'true');
+}
+
+function applyFilterSelection() {
+    selectedFilterCategories = [...pendingFilterCategories];
+    updateFilterButtonText();
+    renderFilteredPets();
+    closeFilterModal();
+}
+
 async function initApp() {
     petModal = document.getElementById('pet-modal');
     modalImage = document.getElementById('modal-image');
@@ -199,6 +268,13 @@ async function initApp() {
     modalCity = document.getElementById('modal-city');
     modalDesc = document.getElementById('modal-desc');
     modalHelpBtn = document.getElementById('modal-help-btn');
+
+    filterButton = document.getElementById('filter-toggle-button');
+    filterModal = document.getElementById('filter-modal');
+    filterOptionsList = document.getElementById('filter-options-list');
+    filterApplyButton = document.getElementById('filter-apply-button');
+    filterClearButton = document.getElementById('filter-clear-button');
+    filterCloseButton = document.getElementById('filter-close-button');
 
     document.getElementById('modal-close').addEventListener('click', closeModal);
     petModal.addEventListener('click', (event) => {
@@ -211,6 +287,51 @@ async function initApp() {
             window.ajudarPet(selectedModalPet.telefone, selectedModalPet.nome);
         }
     });
+
+    if (filterButton) {
+        filterButton.addEventListener('click', openFilterModal);
+    }
+
+    if (filterCloseButton) {
+        filterCloseButton.addEventListener('click', closeFilterModal);
+    }
+
+    if (filterModal) {
+        filterModal.addEventListener('click', (event) => {
+            if (event.target === filterModal) {
+                closeFilterModal();
+            }
+        });
+    }
+
+    if (filterOptionsList) {
+        filterOptionsList.addEventListener('change', (event) => {
+            if (event.target.matches('input[type="checkbox"]')) {
+                const value = event.target.value;
+                if (event.target.checked) {
+                    if (!pendingFilterCategories.includes(value)) {
+                        pendingFilterCategories.push(value);
+                    }
+                } else {
+                    pendingFilterCategories = pendingFilterCategories.filter((category) => category !== value);
+                }
+            }
+        });
+    }
+
+    if (filterApplyButton) {
+        filterApplyButton.addEventListener('click', applyFilterSelection);
+    }
+
+    if (filterClearButton) {
+        filterClearButton.addEventListener('click', () => {
+            pendingFilterCategories = [];
+            renderFilterOptions();
+            applyFilterSelection();
+        });
+    }
+
+    updateFilterButtonText();
 
     await initAddPetForm();
     await loadPets();
@@ -230,13 +351,13 @@ function sortPetsByUrgency(pets) {
     });
 }
 
-function renderPets(pets) {
+function renderPets(pets, emptyMessage = 'Nenhum animal disponível no momento.') {
     const feedContainer = document.getElementById('pet-feed');
     if (!feedContainer) return;
     feedContainer.innerHTML = '';
 
     if (!pets || pets.length === 0) {
-        feedContainer.innerHTML = '<div class="loading">Nenhum animal disponível no momento.</div>';
+        feedContainer.innerHTML = `<div class="loading">${emptyMessage}</div>`;
         return;
     }
 
@@ -439,16 +560,25 @@ async function initAddPetForm() {
 async function loadPets() {
     try {
         const realPets = await listarPets();
+        allPets = realPets && realPets.length > 0 ? realPets : MOCK_PETS;
+
         if (realPets && realPets.length > 0) {
-            renderPets(sortPetsByUrgency(realPets));
+            renderFilteredPets();
         } else {
             console.log('Nenhum pet encontrado no Firebase. Exibindo dados de exemplo.');
-            renderPets(sortPetsByUrgency(MOCK_PETS));
+            renderFilteredPets();
         }
     } catch (error) {
         console.error('Erro ao carregar pets do Firebase:', error);
-        renderPets(sortPetsByUrgency(MOCK_PETS));
+        allPets = MOCK_PETS;
+        renderFilteredPets();
     }
+
+    updateFilterButtonText();
+}
+
+function getLoginPagePath() {
+    return window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
 }
 
 /**
@@ -458,6 +588,11 @@ async function loadPets() {
  * @returns {void}
  */
 window.ajudarPet = function (telefone, nomePet) {
+    if (!auth.currentUser) {
+        window.location.href = getLoginPagePath();
+        return;
+    }
+
     const mensagem = encodeURIComponent(`Olá! Vi o ${nomePet} no AjudaPet e gostaria de saber como posso ajudar.`);
     const whatsappUrl = `https://wa.me/${telefone}?text=${mensagem}`;
     window.open(whatsappUrl, '_blank');
