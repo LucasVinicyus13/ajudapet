@@ -19,13 +19,21 @@
 
     <main class="container profile-page">
         <section class="profile-card">
-            <img id="profile-avatar" class="profile-avatar-large" src="../usuario.png" alt="Foto de perfil">
+            <img id="profile-avatar" class="profile-avatar-large" src="../assets/images/usuario.png" alt="Foto de perfil">
+            <div class="profile-avatar-actions">
+                <input id="profile-avatar-input" type="file" accept="image/*" hidden>
+                <button id="profile-avatar-button" type="button" class="btn-submit btn-avatar-primary">Alterar foto de perfil</button>
+                <button id="profile-avatar-remove-button" type="button" class="btn-submit btn-avatar-secondary">Remover foto</button>
+            </div>
             <h2 id="profile-name">Nome do usuário</h2>
             <p id="profile-email">email@exemplo.com</p>
 
-            <div class="profile-field">
-                <span>Senha</span>
-                <strong>***********</strong>
+            <div class="profile-field profile-posts-title">
+                <span>Seus posts</span>
+            </div>
+
+            <div id="profile-posts" class="profile-posts">
+                <div class="profile-empty">Você ainda não publicou nenhum animal.</div>
             </div>
 
             <div class="profile-action">

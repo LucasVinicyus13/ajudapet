@@ -1,4 +1,5 @@
 import { loginUser, registerUser, observeAuthState } from './firebase-config.js';
+import { getProfileImagePath } from './avatar.js';
 
 function showMessage(element, message, type = 'error') {
     element.textContent = message;
@@ -18,10 +19,6 @@ function getProfilePagePath() {
     return window.location.pathname.includes('/pages/') ? 'perfil.html' : 'pages/perfil.html';
 }
 
-function getProfileImagePath() {
-    return window.location.pathname.includes('/pages/') ? '../usuario.png' : 'usuario.png';
-}
-
 function getLoginPagePath() {
     return window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
 }
@@ -29,6 +26,20 @@ function getLoginPagePath() {
 function showLoggedInHeader() {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
+
+    const actions = document.createElement('div');
+    actions.className = 'auth-actions';
+
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'btn-add-pet';
+    addButton.title = 'Adicionar animal';
+    addButton.textContent = '+';
+    addButton.addEventListener('click', () => {
+        if (window.openAddPetModal) {
+            window.openAddPetModal();
+        }
+    });
 
     const profileLink = document.createElement('a');
     profileLink.href = getProfilePagePath();
@@ -41,8 +52,11 @@ function showLoggedInHeader() {
     profileImage.className = 'profile-avatar';
 
     profileLink.appendChild(profileImage);
+    actions.appendChild(addButton);
+    actions.appendChild(profileLink);
+
     authMenu.innerHTML = '';
-    authMenu.appendChild(profileLink);
+    authMenu.appendChild(actions);
 }
 
 function setupHeaderDefault() {

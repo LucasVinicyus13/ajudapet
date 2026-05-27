@@ -32,6 +32,76 @@
         </div>
     </main>
 
+    <div id="pet-modal" class="pet-modal" aria-hidden="true">
+        <div class="pet-modal-card">
+            <div class="modal-image-wrapper">
+                <img id="modal-image" class="modal-image" src="" alt="Foto do animal">
+                <div class="modal-header-row">
+                    <span id="modal-status" class="pet-status status-urgente detail-status">urgente</span>
+                    <button class="modal-close" id="modal-close" aria-label="Fechar">×</button>
+                </div>
+            </div>
+            <div class="modal-content">
+                <h2 id="modal-name" class="pet-name">Nome do animal</h2>
+                <p id="modal-city" class="pet-city">Cidade</p>
+                <p id="modal-category" class="pet-category">Categoria</p>
+                <h3 class="detail-desc-title">História</h3>
+                <p id="modal-desc" class="detail-desc">Descrição do animal.</p>
+                <button class="btn-ajudar" id="modal-help-btn">FALAR COM RESPONSÁVEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-pet-modal" class="add-pet-modal" aria-hidden="true">
+        <div class="add-pet-card">
+            <div class="add-pet-header">
+                <h2>Publicar animal</h2>
+                <button class="modal-close" id="add-pet-close" aria-label="Fechar">×</button>
+            </div>
+            <form id="add-pet-form" class="add-pet-form">
+                <label class="form-field">
+                    <span>Fotos do animal</span>
+                    <input id="addpet-image" type="file" accept="image/*" required>
+                </label>
+                <label class="form-field">
+                    <span>Nome</span>
+                    <input id="addpet-name" type="text" placeholder="Nome do animal" required>
+                </label>
+                <label class="form-field">
+                    <span>Idade</span>
+                    <input id="addpet-age" type="text" placeholder="Ex: 2 meses, 3 anos" required>
+                </label>
+                <label class="form-field">
+                    <span>Cidade</span>
+                    <input id="addpet-city" type="text" placeholder="Cidade" required>
+                </label>
+                <label class="form-field">
+                    <span>Status</span>
+                    <select id="addpet-status" required>
+                        <option value="urgente">urgente</option>
+                        <option value="resgate">resgate</option>
+                        <option value="adotado">adotado</option>
+                    </select>
+                </label>
+                <label class="form-field">
+                    <span>Categoria</span>
+                    <div class="category-picker" id="category-picker">
+                        <div class="category-selected-list" id="category-selected-list" aria-live="polite">
+                            <span class="category-empty">Nenhuma categoria selecionada</span>
+                        </div>
+                        <div class="category-options-list" id="category-options-list"></div>
+                    </div>
+                    <select id="addpet-category" name="categorias" multiple hidden aria-hidden="true"></select>
+                </label>
+                <label class="form-field">
+                    <span>Descrição do animal</span>
+                    <textarea id="addpet-desc" rows="4" placeholder="Conte a história do animal" required></textarea>
+                </label>
+                <button type="submit" class="btn-submit btn-submit-full">Publicar animal</button>
+            </form>
+        </div>
+    </div>
+
     <footer class="app-footer">
         <div class="container">
             <p>&copy; 2026 AjudaPet. Feito com amor.</p>
