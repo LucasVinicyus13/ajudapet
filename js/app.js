@@ -3,7 +3,7 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPets, criarPet, auth } from './firebase-config.js';
+import { listarPets, criarPet, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
 
 const CATEGORIES = [
     'Pequeno Porte',
@@ -109,6 +109,9 @@ let filterOptionsList = null;
 let filterApplyButton = null;
 let filterClearButton = null;
 let filterCloseButton = null;
+
+let editingPetId = null;
+let editingPetImageDataUrl = null;
 
 function attachImageFallback(imageElement) {
     if (!imageElement) return;
@@ -276,17 +279,26 @@ async function initApp() {
     filterClearButton = document.getElementById('filter-clear-button');
     filterCloseButton = document.getElementById('filter-close-button');
 
-    document.getElementById('modal-close').addEventListener('click', closeModal);
-    petModal.addEventListener('click', (event) => {
-        if (event.target === petModal) {
-            closeModal();
-        }
-    });
-    modalHelpBtn.addEventListener('click', () => {
-        if (selectedModalPet) {
-            window.ajudarPet(selectedModalPet.telefone, selectedModalPet.nome);
-        }
-    });
+    const modalCloseButton = document.getElementById('modal-close');
+    if (modalCloseButton) {
+        modalCloseButton.addEventListener('click', closeModal);
+    }
+
+    if (petModal) {
+        petModal.addEventListener('click', (event) => {
+            if (event.target === petModal) {
+                closeModal();
+            }
+        });
+    }
+
+    if (modalHelpBtn) {
+        modalHelpBtn.addEventListener('click', () => {
+            if (selectedModalPet) {
+                window.ajudarPet(selectedModalPet.telefone, selectedModalPet.nome);
+            }
+        });
+    }
 
     if (filterButton) {
         filterButton.addEventListener('click', openFilterModal);
@@ -440,8 +452,68 @@ function openAddPetModal() {
     const modal = document.getElementById('add-pet-modal');
     if (!modal) return;
     resetCategoryPicker();
+    editingPetId = null;
+    editingPetImageDataUrl = null;
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
+}
+
+function openAddPetModalWithData(pet) {
+    const modal = document.getElementById('add-pet-modal');
+    if (!modal) return;
+    resetCategoryPicker();
+    // garante que o select esteja populado
+    populateCategorySelect();
+
+    if (pet) {
+        editingPetId = pet.id || null;
+        editingPetImageDataUrl = pet.imagem || null;
+
+        const nameInput = document.getElementById('addpet-name');
+        const ageInput = document.getElementById('addpet-age');
+        const cityInput = document.getElementById('addpet-city');
+        const statusInput = document.getElementById('addpet-status');
+        const descInput = document.getElementById('addpet-desc');
+
+        if (nameInput) nameInput.value = pet.nome || '';
+        if (ageInput) ageInput.value = pet.idade || '';
+        if (cityInput) cityInput.value = pet.cidade || '';
+        if (statusInput) statusInput.value = pet.status || 'resgate';
+        if (descInput) descInput.value = pet.descricao || '';
+
+        // select categories (aceita array ou string) - case-insensitive
+        if (pet.categoria) {
+            console.debug('Abrindo modal para editar pet:', pet.id, pet.categoria);
+            // garantir que as options existam
+            populateCategorySelect();
+            setTimeout(() => {
+                if (!categorySelect) {
+                    console.warn('categorySelect não disponível ao tentar selecionar categorias');
+                    return;
+                }
+                let categorias = [];
+                if (Array.isArray(pet.categoria)) {
+                    categorias = pet.categoria.map((c) => String(c).trim());
+                } else if (typeof pet.categoria === 'string') {
+                    categorias = pet.categoria.split(',').map((c) => c.trim()).filter(Boolean);
+                }
+                const lowerSet = new Set(categorias.map((c) => c.toLowerCase()));
+                Array.from(categorySelect.options).forEach((option) => {
+                    option.selected = lowerSet.has(String(option.value).toLowerCase());
+                });
+                // sincroniza visualmente o picker
+                syncCategoryPicker();
+            }, 50);
+        }
+    } else {
+        editingPetId = null;
+        editingPetImageDataUrl = null;
+    }
+
+    modal.classList.add('visible');
+    modal.setAttribute('aria-hidden', 'false');
+    const nameInput = document.getElementById('addpet-name');
+    if (nameInput) nameInput.focus();
 }
 
 function closeAddPetModal() {
@@ -454,13 +526,14 @@ function closeAddPetModal() {
 async function initAddPetForm() {
     const form = document.getElementById('add-pet-form');
     const closeButton = document.getElementById('add-pet-close');
+    const cancelButton = document.getElementById('add-pet-cancel');
     const modal = document.getElementById('add-pet-modal');
 
     categorySelect = document.getElementById('addpet-category');
     categorySelectedList = document.getElementById('category-selected-list');
     categoryOptionsList = document.getElementById('category-options-list');
 
-    if (!form || !closeButton || !modal || !categorySelect || !categorySelectedList || !categoryOptionsList) return;
+    if (!form || !modal || !categorySelect || !categorySelectedList || !categoryOptionsList) return;
 
     populateCategorySelect();
     syncCategoryPicker();
@@ -479,19 +552,17 @@ async function initAddPetForm() {
         }
     });
 
-    closeButton.addEventListener('click', () => {
-        closeAddPetModal();
-        resetCategoryPicker();
-        form.reset();
-    });
-
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
             closeAddPetModal();
             resetCategoryPicker();
             form.reset();
-        }
-    });
+        });
+    }
+
+    // remover o fechamento ao clicar fora do modal de adicionar/editar
+    // somente fechar com o botão Cancelar ou pelo envio do formulário
+    // nenhum listener de clique externo é necessário aqui
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -505,7 +576,15 @@ async function initAddPetForm() {
 
         const selectedCategories = Array.from(categorySelect.selectedOptions).map((option) => option.value);
 
-        if (!imageInput.files.length) {
+        let imagem = null;
+        if (imageInput.files.length) {
+            const file = imageInput.files[0];
+            imagem = await fileToDataUrl(file);
+        } else if (editingPetImageDataUrl) {
+            imagem = editingPetImageDataUrl;
+        }
+
+        if (!imagem) {
             alert('Envie uma foto do animal.');
             return;
         }
@@ -515,8 +594,6 @@ async function initAddPetForm() {
             return;
         }
 
-        const file = imageInput.files[0];
-        const imagem = await fileToDataUrl(file);
         const nome = nameInput.value.trim();
         const idade = ageInput.value.trim();
         const cidade = cityInput.value.trim();
@@ -524,7 +601,6 @@ async function initAddPetForm() {
         const categoria = selectedCategories;
         const descricao = descInput.value.trim();
         const telefone = '55999999999';
-
         const currentUser = auth.currentUser;
         if (!currentUser) {
             alert('Faça login para publicar um animal.');
@@ -543,15 +619,33 @@ async function initAddPetForm() {
             ownerEmail: currentUser.email,
             ownerUid: currentUser.uid
         };
-
         try {
-            await criarPet(petData);
+            if (editingPetId) {
+                await atualizarPet(editingPetId, petData);
+            } else {
+                await criarPet(petData);
+            }
             closeAddPetModal();
             form.reset();
             resetCategoryPicker();
             await loadPets();
         } catch (error) {
             console.error('Erro ao publicar pet:', error);
+            const permissionDenied = error && ((error.code && error.code.includes('permission')) || (error.message && error.message.toLowerCase().includes('permission')) || (error.message && error.message.toLowerCase().includes('insufficient permissions')));
+            if (permissionDenied) {
+                alert('Permissão negada ao salvar no Firebase. As alterações foram aplicadas localmente.');
+                if (editingPetId) {
+                    storeLocalPet({ id: editingPetId, ...petData });
+                } else {
+                    const tempId = `local-${Date.now()}`;
+                    storeLocalPet({ id: tempId, ...petData });
+                }
+                closeAddPetModal();
+                form.reset();
+                resetCategoryPicker();
+                await loadPets();
+                return;
+            }
             alert('Não foi possível publicar o animal. Tente novamente.');
         }
     });
@@ -575,6 +669,13 @@ async function loadPets() {
     }
 
     updateFilterButtonText();
+    // Notifica outras partes da aplicação que os pets foram recarregados
+    try {
+        document.dispatchEvent(new CustomEvent('petsUpdated'));
+    } catch (e) {
+        // fallback
+        document.dispatchEvent(new Event('petsUpdated'));
+    }
 }
 
 function getLoginPagePath() {
@@ -599,5 +700,7 @@ window.ajudarPet = function (telefone, nomePet) {
 };
 
 window.openAddPetModal = openAddPetModal;
+window.openAddPetModalForEdit = openAddPetModalWithData;
+window.loadPets = loadPets;
 
 window.addEventListener('DOMContentLoaded', initApp);

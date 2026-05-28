@@ -12,6 +12,7 @@ import {
     getDocs,
     updateDoc,
     doc,
+    deleteDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
@@ -66,6 +67,34 @@ export async function criarPet(dados) {
  * Retorna todos os animais cadastrados no Firestore.
  * @returns {Promise<Array>} - Lista de objetos de animais.
  */
+const LOCAL_PETS_KEY = 'ajudapet_local_pets';
+
+function getLocalPetsData() {
+    const raw = sessionStorage.getItem(LOCAL_PETS_KEY);
+    if (!raw) return {};
+    try {
+        return JSON.parse(raw) || {};
+    } catch {
+        return {};
+    }
+}
+
+function setLocalPetsData(data) {
+    sessionStorage.setItem(LOCAL_PETS_KEY, JSON.stringify(data));
+}
+
+function mergeLocalPets(pets) {
+    const local = getLocalPetsData();
+    const merged = pets.map((pet) => {
+        if (local[pet.id]) {
+            return { ...pet, ...local[pet.id] };
+        }
+        return pet;
+    });
+    const localOnly = Object.values(local).filter((pet) => !merged.find((item) => item.id === pet.id));
+    return merged.concat(localOnly);
+}
+
 export async function listarPets() {
     try {
         const querySnapshot = await getDocs(collection(db, "pets"));
@@ -75,10 +104,10 @@ export async function listarPets() {
             pets.push({ id: doc.id, ...doc.data() });
         });
 
-        return pets;
+        return mergeLocalPets(pets);
     } catch (error) {
         console.error("Erro ao listar pets:", error);
-        return [];
+        return Object.values(getLocalPetsData());
     }
 }
 
@@ -97,6 +126,55 @@ export async function atualizarStatus(id, novoStatus) {
         console.log(`Status do pet ${id} atualizado para ${novoStatus}`);
     } catch (error) {
         console.error("Erro ao atualizar status:", error);
+        throw error;
+    }
+}
+
+/**
+ * Atualiza os dados de um pet existente.
+ * @param {string} id - ID do documento no Firestore.
+ * @param {Object} dados - Campos a atualizar.
+ * @returns {Promise<void>}
+ */
+export async function atualizarPet(id, dados) {
+    try {
+        const petRef = doc(db, "pets", id);
+        await updateDoc(petRef, {
+            ...dados,
+            dataAtualizacao: serverTimestamp()
+        });
+        console.log(`Pet ${id} atualizado.`);
+    } catch (error) {
+        console.error("Erro ao atualizar pet:", error);
+        throw error;
+    }
+}
+
+/**
+ * Remove um pet do Firestore.
+ * @param {string} id - ID do documento no Firestore.
+ * @returns {Promise<void>}
+ */
+export function storeLocalPet(pet) {
+    const local = getLocalPetsData();
+    local[pet.id] = pet;
+    setLocalPetsData(local);
+}
+
+export function removeLocalPet(id) {
+    const local = getLocalPetsData();
+    delete local[id];
+    setLocalPetsData(local);
+}
+
+export async function deletarPet(id) {
+    try {
+        const petRef = doc(db, "pets", id);
+        await deleteDoc(petRef);
+        removeLocalPet(id);
+        console.log(`Pet ${id} removido.`);
+    } catch (error) {
+        console.error("Erro ao deletar pet:", error);
         throw error;
     }
 }

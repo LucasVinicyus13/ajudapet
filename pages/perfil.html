@@ -45,6 +45,56 @@
 
     <script type="module" src="../js/firebase-config.js"></script>
     <script type="module" src="../js/auth.js"></script>
+    <div id="add-pet-modal" class="add-pet-modal" aria-hidden="true">
+        <div class="add-pet-card">
+            <div class="add-pet-header">
+                <h2>Publicar animal</h2>
+            </div>
+            <form id="add-pet-form" class="add-pet-form">
+                <label class="form-field">
+                    <span>Fotos do animal</span>
+                    <input id="addpet-image" type="file" accept="image/*">
+                </label>
+                <label class="form-field">
+                    <span>Nome</span>
+                    <input id="addpet-name" type="text" placeholder="Nome do animal" required>
+                </label>
+                <label class="form-field">
+                    <span>Idade</span>
+                    <input id="addpet-age" type="text" placeholder="Ex: 2 meses, 3 anos" required>
+                </label>
+                <label class="form-field">
+                    <span>Cidade</span>
+                    <input id="addpet-city" type="text" placeholder="Cidade" required>
+                </label>
+                <label class="form-field">
+                    <span>Status</span>
+                    <select id="addpet-status" required>
+                        <option value="urgente">urgente</option>
+                        <option value="resgate">resgate</option>
+                        <option value="adotado">adotado</option>
+                    </select>
+                </label>
+                <label class="form-field">
+                    <span>Categoria</span>
+                    <div class="category-picker" id="category-picker">
+                        <div class="category-selected-list" id="category-selected-list" aria-live="polite">
+                            <span class="category-empty">Nenhuma categoria selecionada</span>
+                        </div>
+                        <div class="category-options-list" id="category-options-list"></div>
+                    </div>
+                    <select id="addpet-category" name="categorias" multiple hidden aria-hidden="true"></select>
+                </label>
+                <label class="form-field">
+                    <span>Descrição do animal</span>
+                    <textarea id="addpet-desc" rows="4" placeholder="Conte a história do animal" required></textarea>
+                </label>
+                <button type="submit" class="btn-submit btn-submit-full">Publicar animal</button>
+                <button type="button" id="add-pet-cancel" class="btn-filter-secondary">Cancelar</button>
+            </form>
+        </div>
+    </div>
+    <script type="module" src="../js/app.js"></script>
     <script type="module" src="../js/profile.js"></script>
 </body>
 </html>

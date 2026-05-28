@@ -1,4 +1,4 @@
-import { auth, observeAuthState, listarPets } from './firebase-config.js';
+import { auth, observeAuthState, listarPets, deletarPet } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 
 function redirectToLogin() {
@@ -83,7 +83,7 @@ async function renderUserPosts(user) {
         }
 
         userPosts.forEach((pet) => {
-            postsContainer.appendChild(renderPostCard(pet));
+            postsContainer.appendChild(renderPostCard(pet, user));
         });
     } catch (error) {
         console.error('Erro ao carregar posts do usuário:', error);
@@ -91,7 +91,7 @@ async function renderUserPosts(user) {
     }
 }
 
-function renderPostCard(pet) {
+function renderPostCard(pet, user) {
     const card = document.createElement('div');
     card.className = 'profile-post-card';
     card.innerHTML = `
@@ -112,8 +112,83 @@ function renderPostCard(pet) {
         }, { once: true });
     }
 
+    // se for dono do post, adicionar o menu de ações
+    try {
+        const isOwner = user && (pet.ownerEmail === user.email || pet.ownerUid === user.uid);
+        if (isOwner) {
+            const header = card.querySelector('.post-header');
+            if (header) {
+                const menu = createPostMenu(pet, user);
+                header.appendChild(menu);
+            }
+        }
+    } catch (e) {
+        // ignore
+    }
+
     return card;
 }
+
+function createPostMenu(pet, user) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'post-menu-wrapper';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'post-menu-button';
+    btn.setAttribute('aria-label', 'Abrir opções');
+    btn.textContent = '⋯';
+
+    const menu = document.createElement('div');
+    menu.className = 'post-menu';
+    menu.innerHTML = `
+        <button type="button" class="post-menu-item post-edit">Editar post</button>
+        <button type="button" class="post-menu-item post-delete">Excluir post</button>
+    `;
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('visible');
+    });
+
+    menu.querySelector('.post-edit').addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.debug('Editar post clicado:', pet.id);
+        // Abre o modal de adicionar/editar com os dados do pet
+        if (window.openAddPetModalForEdit) {
+            window.openAddPetModalForEdit(pet);
+        } else {
+            console.warn('openAddPetModalForEdit não está definido');
+            alert('Não foi possível abrir o editor. Tente recarregar a página.');
+        }
+        menu.classList.remove('visible');
+    });
+
+    menu.querySelector('.post-delete').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Deseja realmente excluir este post?')) return;
+        try {
+            await deletarPet(pet.id);
+            // Atualiza a lista de posts na página e o feed
+            if (window.loadPets) await window.loadPets();
+            const currentUser = auth.currentUser;
+            if (currentUser) renderUserPosts(currentUser);
+        } catch (error) {
+            console.error('Erro ao excluir post:', error);
+            alert('Não foi possível excluir o post. Tente novamente.');
+        }
+    });
+
+    wrapper.appendChild(btn);
+    wrapper.appendChild(menu);
+    return wrapper;
+}
+
+// Re-renderiza os posts do perfil quando o feed muda
+document.addEventListener('petsUpdated', () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) renderUserPosts(currentUser);
+});
 
 function openWhatsapp(telefone, nome) {
     const mensagem = encodeURIComponent(`Olá! Vi o ${nome} no AjudaPet e gostaria de saber como posso ajudar.`);
