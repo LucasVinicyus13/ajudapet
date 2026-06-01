@@ -1,5 +1,5 @@
 import { loginUser, registerUser, observeAuthState } from './firebase-config.js';
-import { getProfileImagePath } from './avatar.js';
+import { getProfileImagePath, getDefaultProfileImagePath } from './avatar.js';
 
 function showMessage(element, message, type = 'error') {
     element.textContent = message;
@@ -23,7 +23,7 @@ function getLoginPagePath() {
     return window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
 }
 
-function showLoggedInHeader() {
+async function showLoggedInHeader() {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
 
@@ -47,7 +47,12 @@ function showLoggedInHeader() {
     profileLink.className = 'profile-avatar-link';
 
     const profileImage = document.createElement('img');
-    profileImage.src = getProfileImagePath();
+    try {
+        profileImage.src = await getProfileImagePath();
+    } catch (error) {
+        console.error('Erro ao carregar avatar:', error);
+        profileImage.src = getDefaultProfileImagePath();
+    }
     profileImage.alt = 'Perfil do usuário';
     profileImage.className = 'profile-avatar';
 
@@ -65,13 +70,20 @@ function setupHeaderDefault() {
     authMenu.innerHTML = `<a href="${getLoginPagePath()}" class="btn-login">Entrar</a>`;
 }
 
-function renderLoggedInAuthCard(user) {
+async function renderLoggedInAuthCard(user) {
     const authForm = document.querySelector('.auth-form');
     if (!authForm) return;
 
+    let avatarUrl = getDefaultProfileImagePath();
+    try {
+        avatarUrl = await getProfileImagePath();
+    } catch (error) {
+        console.error('Erro ao carregar avatar:', error);
+    }
+
     authForm.innerHTML = `
         <div class="auth-logged-in">
-            <img src="${getProfileImagePath()}" alt="Perfil" class="profile-avatar-large">
+            <img src="${avatarUrl}" alt="Perfil" class="profile-avatar-large">
             <div>
                 <h3>Olá, ${user.displayName || user.email}</h3>
                 <p>Você já está logado. Acesse seu perfil para ver os dados.</p>

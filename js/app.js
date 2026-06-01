@@ -526,6 +526,7 @@ function closeAddPetModal() {
 async function initAddPetForm() {
     const form = document.getElementById('add-pet-form');
     const closeButton = document.getElementById('add-pet-close');
+
     const cancelButton = document.getElementById('add-pet-cancel');
     const modal = document.getElementById('add-pet-modal');
 

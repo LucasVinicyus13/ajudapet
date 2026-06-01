@@ -22,7 +22,7 @@ function setupLogoutButton() {
     logoutButton.addEventListener('click', handleLogout);
 }
 
-function renderProfile(user) {
+async function renderProfile(user) {
     const nameField = document.getElementById('profile-name');
     const emailField = document.getElementById('profile-email');
     const avatar = document.getElementById('profile-avatar');
@@ -32,7 +32,13 @@ function renderProfile(user) {
     const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Usuário');
     nameField.textContent = displayName;
     emailField.textContent = user.email || 'Sem e-mail';
-    avatar.src = getProfileImagePath();
+    
+    try {
+        avatar.src = await getProfileImagePath();
+    } catch (error) {
+        console.error('Erro ao carregar avatar:', error);
+        avatar.src = getDefaultProfileImagePath();
+    }
 }
 
 function setupAvatarUpload() {
@@ -47,20 +53,34 @@ function setupAvatarUpload() {
         avatarInput.click();
     });
 
-    avatarRemoveButton.addEventListener('click', () => {
-        clearProfileImage();
-        avatar.src = getDefaultProfileImagePath();
+    avatarRemoveButton.addEventListener('click', async () => {
+        try {
+            await clearProfileImage();
+            avatar.src = getDefaultProfileImagePath();
+        } catch (error) {
+            console.error('Erro ao remover avatar:', error);
+            alert('Erro ao remover a foto de perfil');
+        }
     });
 
-    avatarInput.addEventListener('change', (event) => {
+    avatarInput.addEventListener('change', async (event) => {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
             const dataUrl = reader.result;
             avatar.src = dataUrl;
-            setProfileImage(dataUrl);
+            
+            try {
+                const firebaseUrl = await setProfileImage(dataUrl);
+                if (firebaseUrl) {
+                    avatar.src = firebaseUrl;
+                }
+            } catch (error) {
+                console.error('Erro ao salvar avatar:', error);
+                alert('Erro ao salvar a foto de perfil');
+            }
         };
         reader.readAsDataURL(file);
         avatarInput.value = '';

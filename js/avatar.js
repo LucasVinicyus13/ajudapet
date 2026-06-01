@@ -1,27 +1,90 @@
+import { uploadUserAvatar, getUserAvatarUrl, deleteUserAvatar } from './firebase-config.js';
+import { auth } from './firebase-config.js';
+
 const PROFILE_AVATAR_KEY = 'ajudapet-profile-avatar';
 
 function getDefaultProfileImagePath() {
     return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
 }
 
-function getProfileImagePath() {
+/**
+ * Obtém a URL do avatar do perfil.
+ * Tenta primeiro do Firebase Storage, depois do localStorage (compatibilidade com versões antigas).
+ * @returns {Promise<string>} - URL do avatar ou caminho padrão se não existir.
+ */
+export async function getProfileImagePath() {
+    try {
+        // Se o usuário está logado, tenta obter do Firebase Storage
+        if (auth.currentUser) {
+            const firebaseUrl = await getUserAvatarUrl(auth.currentUser.uid);
+            if (firebaseUrl) {
+                return firebaseUrl;
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao obter avatar do Firebase:", error);
+    }
+
+    // Fallback para localStorage (compatibilidade com dados antigos)
     const storedAvatar = localStorage.getItem(PROFILE_AVATAR_KEY);
-    return storedAvatar || getDefaultProfileImagePath();
+    if (storedAvatar) {
+        return storedAvatar;
+    }
+
+    return getDefaultProfileImagePath();
 }
 
-function setProfileImage(dataUrl) {
-    if (!dataUrl) return;
-    localStorage.setItem(PROFILE_AVATAR_KEY, dataUrl);
+/**
+ * Salva a foto de perfil no Firebase Storage.
+ * @param {string} dataUrl - Data URL da imagem.
+ * @returns {Promise<string>} - URL de download da imagem salva no Firebase.
+ */
+export async function setProfileImage(dataUrl) {
+    if (!dataUrl || !auth.currentUser) {
+        console.warn("Não é possível salvar avatar sem usuário logado");
+        return null;
+    }
+
+    try {
+        // Converter data URL para Blob
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+
+        // Upload para Firebase Storage
+        const firebaseUrl = await uploadUserAvatar(auth.currentUser.uid, blob);
+        
+        // Manter no localStorage como fallback
+        localStorage.setItem(PROFILE_AVATAR_KEY, firebaseUrl);
+        
+        return firebaseUrl;
+    } catch (error) {
+        console.error("Erro ao salvar avatar:", error);
+        throw error;
+    }
 }
 
-function clearProfileImage() {
+/**
+ * Limpa o avatar do perfil (remove do Firebase Storage e localStorage).
+ * @returns {Promise<void>}
+ */
+export async function clearProfileImage() {
+    if (!auth.currentUser) {
+        localStorage.removeItem(PROFILE_AVATAR_KEY);
+        return;
+    }
+
+    try {
+        // Remover do Firebase Storage
+        await deleteUserAvatar(auth.currentUser.uid);
+    } catch (error) {
+        console.error("Erro ao deletar avatar:", error);
+    }
+
+    // Remover do localStorage
     localStorage.removeItem(PROFILE_AVATAR_KEY);
 }
 
 export {
     PROFILE_AVATAR_KEY,
-    getDefaultProfileImagePath,
-    getProfileImagePath,
-    setProfileImage,
-    clearProfileImage
+    getDefaultProfileImagePath
 };

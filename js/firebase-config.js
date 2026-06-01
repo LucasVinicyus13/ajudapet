@@ -22,6 +22,13 @@ import {
     updateProfile,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+    getStorage,
+    ref,
+    uploadBytes,
+    getDownloadURL,
+    deleteObject
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // CONFIGURAÇÃO DO FIREBASE (Substitua pelos seus dados do Console do Firebase)
 const firebaseConfig = {
@@ -37,6 +44,7 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 /**
  * Cria um novo registro de animal no Firestore.
@@ -228,4 +236,63 @@ export function observeAuthState(callback) {
 }
 
 // Exporta o db para uso em outros arquivos se necessário
-export { db, auth };
+export { db, auth, storage };
+
+/**
+ * Faz upload do avatar do usuário para o Firebase Storage.
+ * @param {string} uid - ID do usuário.
+ * @param {Blob} imageBlob - Blob da imagem.
+ * @returns {Promise<string>} - URL de download da imagem.
+ */
+export async function uploadUserAvatar(uid, imageBlob) {
+    try {
+        const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
+        await uploadBytes(avatarRef, imageBlob);
+        const downloadUrl = await getDownloadURL(avatarRef);
+        console.log("Avatar enviado com sucesso:", downloadUrl);
+        return downloadUrl;
+    } catch (error) {
+        console.error("Erro ao enviar avatar:", error);
+        throw error;
+    }
+}
+
+/**
+ * Obtém a URL do avatar do usuário do Firebase Storage.
+ * @param {string} uid - ID do usuário.
+ * @returns {Promise<string|null>} - URL do avatar ou null se não existir.
+ */
+export async function getUserAvatarUrl(uid) {
+    try {
+        const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
+        return await getDownloadURL(avatarRef);
+    } catch (error) {
+        // Se o arquivo não existir, retorna null
+        if (error.code === 'storage/object-not-found') {
+            return null;
+        }
+        console.error("Erro ao obter avatar:", error);
+        throw error;
+    }
+}
+
+/**
+ * Deleta o avatar do usuário do Firebase Storage.
+ * @param {string} uid - ID do usuário.
+ * @returns {Promise<void>}
+ */
+export async function deleteUserAvatar(uid) {
+    try {
+        const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
+        await deleteObject(avatarRef);
+        console.log("Avatar deletado com sucesso");
+    } catch (error) {
+        // Se o arquivo não existir, apenas log
+        if (error.code === 'storage/object-not-found') {
+            console.log("Avatar não encontrado no storage");
+            return;
+        }
+        console.error("Erro ao deletar avatar:", error);
+        throw error;
+    }
+}
