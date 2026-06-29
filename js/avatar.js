@@ -12,11 +12,11 @@ function getDefaultProfileImagePath() {
  * Tenta primeiro do Firebase Storage, depois do localStorage (compatibilidade com versões antigas).
  * @returns {Promise<string>} - URL do avatar ou caminho padrão se não existir.
  */
-export async function getProfileImagePath() {
+export async function getProfileImagePath(uid) {
     try {
-        // Se o usuário está logado, tenta obter do Firebase Storage
-        if (auth.currentUser) {
-            const firebaseUrl = await getUserAvatarUrl(auth.currentUser.uid);
+        const userId = uid || auth.currentUser?.uid;
+        if (userId) {
+            const firebaseUrl = await getUserAvatarUrl(userId);
             if (firebaseUrl) {
                 return firebaseUrl;
             }
@@ -37,10 +37,12 @@ export async function getProfileImagePath() {
 /**
  * Salva a foto de perfil no Firebase Storage.
  * @param {string} dataUrl - Data URL da imagem.
+ * @param {string} [uid] - ID do usuário.
  * @returns {Promise<string>} - URL de download da imagem salva no Firebase.
  */
-export async function setProfileImage(dataUrl) {
-    if (!dataUrl || !auth.currentUser) {
+export async function setProfileImage(dataUrl, uid) {
+    const userId = uid || auth.currentUser?.uid;
+    if (!dataUrl || !userId) {
         console.warn("Não é possível salvar avatar sem usuário logado");
         return null;
     }
@@ -51,7 +53,7 @@ export async function setProfileImage(dataUrl) {
         const blob = await response.blob();
 
         // Upload para Firebase Storage
-        const firebaseUrl = await uploadUserAvatar(auth.currentUser.uid, blob);
+        const firebaseUrl = await uploadUserAvatar(userId, blob);
         
         // Manter no localStorage como fallback
         localStorage.setItem(PROFILE_AVATAR_KEY, firebaseUrl);
@@ -65,17 +67,19 @@ export async function setProfileImage(dataUrl) {
 
 /**
  * Limpa o avatar do perfil (remove do Firebase Storage e localStorage).
+ * @param {string} [uid] - ID do usuário.
  * @returns {Promise<void>}
  */
-export async function clearProfileImage() {
-    if (!auth.currentUser) {
+export async function clearProfileImage(uid) {
+    const userId = uid || auth.currentUser?.uid;
+    if (!userId) {
         localStorage.removeItem(PROFILE_AVATAR_KEY);
         return;
     }
 
     try {
         // Remover do Firebase Storage
-        await deleteUserAvatar(auth.currentUser.uid);
+        await deleteUserAvatar(userId);
     } catch (error) {
         console.error("Erro ao deletar avatar:", error);
     }

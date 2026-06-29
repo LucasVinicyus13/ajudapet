@@ -34,7 +34,7 @@ async function renderProfile(user) {
     emailField.textContent = user.email || 'Sem e-mail';
     
     try {
-        avatar.src = await getProfileImagePath();
+        avatar.src = await getProfileImagePath(user.uid);
     } catch (error) {
         console.error('Erro ao carregar avatar:', error);
         avatar.src = getDefaultProfileImagePath();
@@ -221,10 +221,10 @@ window.addEventListener('DOMContentLoaded', () => {
     setupAvatarUpload();
     setupLogoutButton();
 
-    observeAuthState((user) => {
+    observeAuthState(async (user) => {
         if (user) {
-            renderProfile(user);
-            renderUserPosts(user);
+            await renderProfile(user);
+            await renderUserPosts(user);
         } else {
             redirectToLogin();
         }

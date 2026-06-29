@@ -1,4 +1,4 @@
-import { loginUser, registerUser, observeAuthState } from './firebase-config.js';
+import { loginUser, registerUser, observeAuthState, auth } from './firebase-config.js';
 import { getProfileImagePath, getDefaultProfileImagePath } from './avatar.js';
 
 function showMessage(element, message, type = 'error') {
@@ -23,7 +23,7 @@ function getLoginPagePath() {
     return window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
 }
 
-async function showLoggedInHeader() {
+function showLoggedInHeader(user) {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
 
@@ -47,12 +47,7 @@ async function showLoggedInHeader() {
     profileLink.className = 'profile-avatar-link';
 
     const profileImage = document.createElement('img');
-    try {
-        profileImage.src = await getProfileImagePath();
-    } catch (error) {
-        console.error('Erro ao carregar avatar:', error);
-        profileImage.src = getDefaultProfileImagePath();
-    }
+    profileImage.src = getDefaultProfileImagePath();
     profileImage.alt = 'Perfil do usuário';
     profileImage.className = 'profile-avatar';
 
@@ -60,14 +55,36 @@ async function showLoggedInHeader() {
     actions.appendChild(addButton);
     actions.appendChild(profileLink);
 
-    authMenu.innerHTML = '';
-    authMenu.appendChild(actions);
+    setAuthMenuContent([actions]);
+    void loadProfileImage(profileImage, user?.uid);
+}
+
+async function loadProfileImage(imageElement, uid) {
+    if (!imageElement || !uid) return;
+    try {
+        const avatarUrl = await getProfileImagePath(uid);
+        if (avatarUrl) {
+            imageElement.src = avatarUrl;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar avatar:', error);
+    }
+}
+
+function setAuthMenuContent(nodes) {
+    const authMenu = document.getElementById('auth-menu');
+    if (!authMenu) return;
+    authMenu.replaceChildren(...nodes);
 }
 
 function setupHeaderDefault() {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
-    authMenu.innerHTML = `<a href="${getLoginPagePath()}" class="btn-login">Entrar</a>`;
+    const loginLink = document.createElement('a');
+    loginLink.href = getLoginPagePath();
+    loginLink.className = 'btn-login';
+    loginLink.textContent = 'Entrar';
+    setAuthMenuContent([loginLink]);
 }
 
 async function renderLoggedInAuthCard(user) {
@@ -76,7 +93,7 @@ async function renderLoggedInAuthCard(user) {
 
     let avatarUrl = getDefaultProfileImagePath();
     try {
-        avatarUrl = await getProfileImagePath();
+        avatarUrl = await getProfileImagePath(user.uid);
     } catch (error) {
         console.error('Erro ao carregar avatar:', error);
     }
@@ -109,7 +126,8 @@ function setupLoginForm() {
         try {
             await loginUser(email, password);
             showMessage(messageElement, 'Login realizado com sucesso! Redirecionando...', 'success');
-            setTimeout(redirectToHome, 1000);
+            // redireciona imediatamente para evitar demora perceptível
+            redirectToHome();
         } catch (error) {
             const errorCode = error.code || '';
             let errorMessage = 'Não foi possível fazer login. Verifique seus dados.';
@@ -168,6 +186,17 @@ function setupRegisterForm() {
     });
 }
 
+function renderAuthState(user) {
+    if (user) {
+        showLoggedInHeader(user);
+        if (document.querySelector('.auth-form')) {
+            void renderLoggedInAuthCard(user);
+        }
+    } else {
+        setupHeaderDefault();
+    }
+}
+
 function initAuthPage() {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -178,17 +207,16 @@ function initAuthPage() {
     if (registerForm) {
         setupRegisterForm();
     }
-    setupHeaderDefault();
+
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+        renderAuthState(currentUser);
+    } else {
+        setupHeaderDefault();
+    }
 
     observeAuthState((user) => {
-        if (user) {
-            showLoggedInHeader();
-            if (loginForm || registerForm) {
-                renderLoggedInAuthCard(user);
-            }
-        } else {
-            setupHeaderDefault();
-        }
+        renderAuthState(user);
     });
 }
 
