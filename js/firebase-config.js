@@ -10,6 +10,11 @@ import {
     collection,
     addDoc,
     getDocs,
+    query,
+    orderBy,
+    limit as firestoreLimit,
+    startAfter,
+    where,
     updateDoc,
     doc,
     deleteDoc,
@@ -116,6 +121,55 @@ export async function listarPets() {
     } catch (error) {
         console.error("Erro ao listar pets:", error);
         return Object.values(getLocalPetsData());
+    }
+}
+
+export async function listarPetsPage(pageSize = 6, startAfterDoc = null, categories = []) {
+    try {
+        const petsRef = collection(db, "pets");
+        let q;
+
+        if (Array.isArray(categories) && categories.length > 0) {
+            q = query(
+                petsRef,
+                where("categoria", "array-contains-any", categories),
+                orderBy("dataCriacao", "desc"),
+                firestoreLimit(pageSize)
+            );
+        } else {
+            q = query(
+                petsRef,
+                orderBy("dataCriacao", "desc"),
+                firestoreLimit(pageSize)
+            );
+        }
+
+        if (startAfterDoc) {
+            q = query(q, startAfter(startAfterDoc));
+        }
+
+        const querySnapshot = await getDocs(q);
+        const pets = [];
+
+        querySnapshot.forEach((doc) => {
+            pets.push({ id: doc.id, ...doc.data() });
+        });
+
+        const lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+        const hasMore = querySnapshot.size === pageSize;
+
+        return {
+            pets: mergeLocalPets(pets),
+            lastVisibleDoc,
+            hasMore
+        };
+    } catch (error) {
+        console.error("Erro ao listar pets por página:", error);
+        return {
+            pets: Object.values(getLocalPetsData()),
+            lastVisibleDoc: null,
+            hasMore: false
+        };
     }
 }
 

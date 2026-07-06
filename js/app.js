@@ -3,7 +3,7 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPets, criarPet, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
+import { listarPetsPage, criarPet, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
 
 const CATEGORIES = [
     'Pequeno Porte',
@@ -102,6 +102,7 @@ let categoryOptionsList = null;
 let selectedCategoryValues = [];
 let isSubmittingPet = false;
 
+const PETS_PAGE_SIZE = 6;
 let allPets = [];
 let selectedFilterCategories = [];
 let pendingFilterCategories = [];
@@ -111,6 +112,9 @@ let filterOptionsList = null;
 let filterApplyButton = null;
 let filterClearButton = null;
 let filterCloseButton = null;
+let lastVisiblePetDoc = null;
+let hasMorePets = true;
+let isLoadingPets = false;
 
 let editingPetId = null;
 let editingPetImageDataUrl = null;
@@ -246,7 +250,7 @@ function renderFilteredPets() {
     const emptyMessage = selectedFilterCategories.length
         ? 'Nenhum animal encontrado para os filtros selecionados.'
         : 'Nenhum animal disponível no momento.';
-    renderPets(sortPetsByUrgency(filteredPets), emptyMessage);
+    renderPets(sortPetsByUrgency(filteredPets), emptyMessage, false);
 }
 
 function updateFilterButtonText() {
@@ -309,6 +313,13 @@ async function initApp() {
     filterApplyButton = document.getElementById('filter-apply-button');
     filterClearButton = document.getElementById('filter-clear-button');
     filterCloseButton = document.getElementById('filter-close-button');
+
+    window.addEventListener('scroll', () => {
+        if (!hasMorePets || isLoadingPets) return;
+        if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500)) {
+            void loadPets();
+        }
+    });
 
     const modalCloseButton = document.getElementById('modal-close');
     if (modalCloseButton) {
@@ -394,13 +405,18 @@ function sortPetsByUrgency(pets) {
     });
 }
 
-function renderPets(pets, emptyMessage = 'Nenhum animal disponível no momento.') {
+function renderPets(pets, emptyMessage = 'Nenhum animal disponível no momento.', append = false) {
     const feedContainer = document.getElementById('pet-feed');
     if (!feedContainer) return;
-    feedContainer.innerHTML = '';
+
+    if (!append) {
+        feedContainer.innerHTML = '';
+    }
 
     if (!pets || pets.length === 0) {
-        feedContainer.innerHTML = `<div class="loading">${emptyMessage}</div>`;
+        if (!append) {
+            feedContainer.innerHTML = `<div class="loading">${emptyMessage}</div>`;
+        }
         return;
     }
 
@@ -689,21 +705,51 @@ async function initAddPetForm() {
     });
 }
 
-async function loadPets() {
-    try {
-        const realPets = await listarPets();
-        allPets = realPets && realPets.length > 0 ? realPets : MOCK_PETS;
+async function loadPets(reset = false) {
+    if (isLoadingPets) return;
+    isLoadingPets = true;
 
-        if (realPets && realPets.length > 0) {
+    const feedContainer = document.getElementById('pet-feed');
+    if (reset && feedContainer) {
+        feedContainer.innerHTML = '<div class="loading">Carregando animais...</div>';
+    }
+
+    if (reset) {
+        allPets = [];
+        lastVisiblePetDoc = null;
+        hasMorePets = true;
+    }
+
+    if (!hasMorePets) {
+        isLoadingPets = false;
+        return;
+    }
+
+    try {
+        const result = await listarPetsPage(PETS_PAGE_SIZE, lastVisiblePetDoc);
+        const newPets = (result && result.pets && result.pets.length > 0) ? result.pets : [];
+
+        if (reset) {
+            allPets = newPets;
             renderFilteredPets();
         } else {
-            console.log('Nenhum pet encontrado no Firebase. Exibindo dados de exemplo.');
-            renderFilteredPets();
+            allPets = [...allPets, ...newPets];
+            renderPets(sortPetsByUrgency(getFilteredPets(allPets)), 'Nenhum animal disponível no momento.', false);
+        }
+
+        lastVisiblePetDoc = result.lastVisibleDoc;
+        hasMorePets = result.hasMore;
+        if (!hasMorePets && allPets.length === 0 && feedContainer) {
+            feedContainer.innerHTML = '<div class="loading">Nenhum animal disponível no momento.</div>';
         }
     } catch (error) {
         console.error('Erro ao carregar pets do Firebase:', error);
-        allPets = MOCK_PETS;
-        renderFilteredPets();
+        if (allPets.length === 0) {
+            allPets = MOCK_PETS;
+            renderFilteredPets();
+        }
+    } finally {
+        isLoadingPets = false;
     }
 
     updateFilterButtonText();
