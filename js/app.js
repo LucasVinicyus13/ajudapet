@@ -618,6 +618,11 @@ async function submitReport(event) {
 
     if (!currentReportPet) return;
 
+    if (!auth.currentUser) {
+        alert('Você precisa estar logado para denunciar um post.');
+        return;
+    }
+
     const selectedReasonInput = document.querySelector('input[name="report-reason"]:checked');
     const selectedReason = selectedReasonInput ? selectedReasonInput.value : '';
     const customReason = reportOtherReasonInput ? reportOtherReasonInput.value.trim() : '';
@@ -628,27 +633,34 @@ async function submitReport(event) {
         return;
     }
 
-    const reporterName = auth.currentUser?.displayName || auth.currentUser?.email || 'Usuário sem nome';
+    const reporterName = auth.currentUser.displayName || auth.currentUser.email || 'Usuário sem nome';
+    const reporterEmail = auth.currentUser.email || '';
     const petOwner = currentReportPet.ownerEmail || currentReportPet.ownerUid || 'usuário';
     const reportPayload = {
         petId: currentReportPet.id,
         petName: currentReportPet.nome,
         reporterName,
-        reporterEmail: auth.currentUser?.email || '',
+        reporterEmail,
         motivo,
         ownerIdentifier: petOwner
     };
 
     try {
-        await criarDenuncia(reportPayload);
+        const reportId = await criarDenuncia(reportPayload);
+        console.log('Denúncia registrada com ID:', reportId);
+        
         const subject = encodeURIComponent(`Denúncia registrada no post de ${petOwner}`);
         const body = encodeURIComponent(`Uma denuncia foi registrada no post de ${petOwner}, pelo motivo de ${motivo}\n\nVerificar post: ${window.location.origin}/pages/verificar-post.html?id=${currentReportPet.id}`);
-        window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
+        
+        // Fechar modal antes de abrir mailto (que será tratado pelo navegador)
         closeReportModal();
-    } catch (error) {
-        console.error('Erro ao registrar denúncia:', error);
-        alert('Não foi possível registrar a denúncia. Tente novamente.');
-    }
+        
+        // Abrir cliente de e-mail com as informações
+        setTimeout(() => {
+            window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
+        }, 500);
+        
+        alert('Denúncia registrada com sucesso! Um e-mail de notificação será enviado.');\n    } catch (error) {\n        console.error('❌ Erro completo ao registrar denúncia:', error);\n        console.error('Código de erro:', error?.code);\n        console.error('Mensagem:', error?.message);\n        alert('Não foi possível registrar a denúncia. Verifique sua conexão e tente novamente.\\nErro: ' + (error?.message || 'desconhecido'));\n    }
 }
 
 function openAddPetModal() {

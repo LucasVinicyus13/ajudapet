@@ -403,10 +403,21 @@ export async function deleteUserAvatar(uid) {
 
 export async function criarDenuncia(dados) {
     try {
+        if (!dados.petId || !dados.motivo) {
+            throw new Error('petId e motivo são campos obrigatórios na denúncia');
+        }
+
         const docRef = await addDoc(collection(db, 'reports'), {
-            ...dados,
-            dataCriacao: serverTimestamp()
+            petId: dados.petId,
+            petName: dados.petName || '',
+            reporterName: dados.reporterName || 'Anônimo',
+            reporterEmail: dados.reporterEmail || '',
+            motivo: dados.motivo,
+            ownerIdentifier: dados.ownerIdentifier || '',
+            dataCriacao: serverTimestamp(),
+            resolvida: false
         });
+        console.log('Denúncia criada com sucesso:', docRef.id);
         return docRef.id;
     } catch (error) {
         console.error('Erro ao registrar denúncia:', error);
