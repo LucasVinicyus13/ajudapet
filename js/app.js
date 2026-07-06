@@ -99,6 +99,7 @@ let selectedModalPet = null;
 let categorySelect = null;
 let categorySelectedList = null;
 let categoryOptionsList = null;
+let selectedCategoryValues = [];
 
 let allPets = [];
 let selectedFilterCategories = [];
@@ -145,7 +146,7 @@ function formatCategories(pet) {
 function syncCategoryPicker() {
     if (!categorySelect || !categorySelectedList || !categoryOptionsList) return;
 
-    const selectedValues = Array.from(categorySelect.selectedOptions).map((option) => option.value);
+    const selectedValues = [...selectedCategoryValues];
     categorySelectedList.innerHTML = '';
 
     if (selectedValues.length === 0) {
@@ -189,15 +190,25 @@ function populateCategorySelect() {
 function toggleCategory(value) {
     if (!categorySelect) return;
 
-    const option = Array.from(categorySelect.options).find((item) => item.value === value);
-    if (!option) return;
+    const normalizedValue = String(value).trim();
+    const hasValue = selectedCategoryValues.includes(normalizedValue);
 
-    option.selected = !option.selected;
+    if (hasValue) {
+        selectedCategoryValues = selectedCategoryValues.filter((item) => item !== normalizedValue);
+    } else {
+        selectedCategoryValues = [...selectedCategoryValues, normalizedValue];
+    }
+
+    Array.from(categorySelect.options).forEach((option) => {
+        option.selected = selectedCategoryValues.includes(option.value);
+    });
+
     syncCategoryPicker();
 }
 
 function resetCategoryPicker() {
     if (!categorySelect) return;
+    selectedCategoryValues = [];
     Array.from(categorySelect.options).forEach((option) => {
         option.selected = false;
     });
@@ -484,26 +495,18 @@ function openAddPetModalWithData(pet) {
         // select categories (aceita array ou string) - case-insensitive
         if (pet.categoria) {
             console.debug('Abrindo modal para editar pet:', pet.id, pet.categoria);
-            // garantir que as options existam
-            populateCategorySelect();
-            setTimeout(() => {
-                if (!categorySelect) {
-                    console.warn('categorySelect não disponível ao tentar selecionar categorias');
-                    return;
-                }
-                let categorias = [];
-                if (Array.isArray(pet.categoria)) {
-                    categorias = pet.categoria.map((c) => String(c).trim());
-                } else if (typeof pet.categoria === 'string') {
-                    categorias = pet.categoria.split(',').map((c) => c.trim()).filter(Boolean);
-                }
-                const lowerSet = new Set(categorias.map((c) => c.toLowerCase()));
-                Array.from(categorySelect.options).forEach((option) => {
-                    option.selected = lowerSet.has(String(option.value).toLowerCase());
-                });
-                // sincroniza visualmente o picker
-                syncCategoryPicker();
-            }, 50);
+            let categorias = [];
+            if (Array.isArray(pet.categoria)) {
+                categorias = pet.categoria.map((c) => String(c).trim());
+            } else if (typeof pet.categoria === 'string') {
+                categorias = pet.categoria.split(',').map((c) => c.trim()).filter(Boolean);
+            }
+            const normalized = categorias.map((c) => c.toLowerCase());
+            selectedCategoryValues = categorias.filter((categoria) => normalized.includes(categoria.toLowerCase()));
+            Array.from(categorySelect.options).forEach((option) => {
+                option.selected = selectedCategoryValues.includes(option.value);
+            });
+            syncCategoryPicker();
         }
     } else {
         editingPetId = null;
@@ -573,12 +576,15 @@ async function initAddPetForm() {
         const setSubmitting = (submitting) => {
             if (!submitButton) return;
             submitButton.disabled = submitting;
+            submitButton.classList.toggle('loading', submitting);
             submitButton.textContent = submitting ? 'Enviando...' : submitButtonText;
         };
 
         if (submitButton && submitButton.disabled) {
             return;
         }
+
+        setSubmitting(true);
 
         const imageInput = document.getElementById('addpet-image');
         const nameInput = document.getElementById('addpet-name');
@@ -587,7 +593,7 @@ async function initAddPetForm() {
         const statusInput = document.getElementById('addpet-status');
         const descInput = document.getElementById('addpet-desc');
 
-        const selectedCategories = Array.from(categorySelect.selectedOptions).map((option) => option.value);
+        const selectedCategories = [...selectedCategoryValues];
 
         let imagem = null;
         if (imageInput.files.length) {
@@ -603,7 +609,7 @@ async function initAddPetForm() {
             return;
         }
 
-        if (selectedCategories.length === 0) {
+        if (selectedCategoryValues.length === 0) {
             alert('Selecione pelo menos uma categoria.');
             setSubmitting(false);
             return;
