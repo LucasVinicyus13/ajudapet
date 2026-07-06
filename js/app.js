@@ -568,6 +568,18 @@ async function initAddPetForm() {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
+        const submitButton = form.querySelector('button[type="submit"]');
+        const submitButtonText = submitButton ? submitButton.textContent : null;
+        const setSubmitting = (submitting) => {
+            if (!submitButton) return;
+            submitButton.disabled = submitting;
+            submitButton.textContent = submitting ? 'Enviando...' : submitButtonText;
+        };
+
+        if (submitButton && submitButton.disabled) {
+            return;
+        }
+
         const imageInput = document.getElementById('addpet-image');
         const nameInput = document.getElementById('addpet-name');
         const ageInput = document.getElementById('addpet-age');
@@ -587,11 +599,13 @@ async function initAddPetForm() {
 
         if (!imagem) {
             alert('Envie uma foto do animal.');
+            setSubmitting(false);
             return;
         }
 
         if (selectedCategories.length === 0) {
             alert('Selecione pelo menos uma categoria.');
+            setSubmitting(false);
             return;
         }
 
@@ -605,6 +619,7 @@ async function initAddPetForm() {
         const currentUser = auth.currentUser;
         if (!currentUser) {
             alert('Faça login para publicar um animal.');
+            setSubmitting(false);
             return;
         }
 
@@ -620,6 +635,8 @@ async function initAddPetForm() {
             ownerEmail: currentUser.email,
             ownerUid: currentUser.uid
         };
+
+        setSubmitting(true);
         try {
             if (editingPetId) {
                 await atualizarPet(editingPetId, petData);
@@ -648,6 +665,8 @@ async function initAddPetForm() {
                 return;
             }
             alert('Não foi possível publicar o animal. Tente novamente.');
+        } finally {
+            setSubmitting(false);
         }
     });
 }
