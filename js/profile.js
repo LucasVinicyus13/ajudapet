@@ -1,6 +1,8 @@
 import { auth, observeAuthState, listarPets, deletarPet } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 
+let currentUser = null;
+
 function redirectToLogin() {
     const loginPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
     window.location.href = loginPath;
@@ -67,19 +69,24 @@ function setupAvatarUpload() {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
 
+        if (!currentUser) {
+            alert('Faça login para alterar sua foto de perfil.');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async () => {
             const dataUrl = reader.result;
             avatar.src = dataUrl;
             
             try {
-                const firebaseUrl = await setProfileImage(dataUrl);
+                const firebaseUrl = await setProfileImage(dataUrl, currentUser.uid);
                 if (firebaseUrl) {
                     avatar.src = firebaseUrl;
                 }
             } catch (error) {
                 console.error('Erro ao salvar avatar:', error);
-                alert('Erro ao salvar a foto de perfil');
+                alert('Erro ao salvar a foto de perfil no Firebase. Tente novamente.');
             }
         };
         reader.readAsDataURL(file);
@@ -223,6 +230,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     observeAuthState(async (user) => {
         if (user) {
+            currentUser = user;
             await renderProfile(user);
             await renderUserPosts(user);
         } else {
