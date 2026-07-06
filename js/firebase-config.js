@@ -37,13 +37,12 @@ import {
 
 // CONFIGURAÇÃO DO FIREBASE (Substitua pelos seus dados do Console do Firebase)
 const firebaseConfig = {
-    apiKey: "AIzaSyBQtBupofTQGmMhHPWUwg8nwgJtvmG2AeE",
-    authDomain: "ajudapet-e56a0.firebaseapp.com",
-    projectId: "ajudapet-e56a0",
-    storageBucket: "ajudapet-e56a0.firebasestorage.app",
-    messagingSenderId: "226666378269",
-    appId: "1:226666378269:web:e6cea8e9a3b7d578c482f4",
-    measurementId: "G-04X4J0PPB0"
+    apiKey: "AIzaSyBZ53kYtTFaToHGhkAnEQ6sN2yF5jABb98",
+    authDomain: "ajudapet-2d3c6.firebaseapp.com",
+    projectId: "ajudapet-2d3c6",
+    storageBucket: "ajudapet-2d3c6.firebasestorage.app",
+    messagingSenderId: "876154081954",
+    appId: "1:876154081954:web:35340b11e004e8a449bdfb"
 };
 
 // Inicializa o Firebase
