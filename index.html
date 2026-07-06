@@ -70,7 +70,35 @@
                 <h3 class="detail-desc-title">História</h3>
                 <p id="modal-desc" class="detail-desc">Descrição do animal.</p>
                 <button class="btn-ajudar" id="modal-help-btn">FALAR COM RESPONSÁVEL</button>
+                <button class="btn-report btn-report-modal" id="modal-report-btn" type="button">Denunciar post</button>
             </div>
+        </div>
+    </div>
+
+    <div id="report-modal" class="report-modal" aria-hidden="true">
+        <div class="report-modal-card">
+            <div class="report-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">Denúncia</p>
+                    <h2 class="filter-modal-title">Denunciar post</h2>
+                </div>
+                <button type="button" class="filter-close" id="report-close-button" aria-label="Fechar denúncia">×</button>
+            </div>
+            <p class="report-copy">Você está denunciando o post de <strong id="report-pet-name">este animal</strong>.</p>
+            <form id="report-form" class="report-form">
+                <label class="report-option"><input type="radio" name="report-reason" value="Pornografia"> Pornografia</label>
+                <label class="report-option"><input type="radio" name="report-reason" value="Palavrões"> Palavrões</label>
+                <label class="report-option"><input type="radio" name="report-reason" value="Não é um animal"> Não é um animal</label>
+                <label class="report-option"><input type="radio" name="report-reason" value="Outro"> Outro</label>
+                <label class="report-field report-field-hidden">
+                    <span>Descreva o motivo</span>
+                    <textarea id="report-other-reason" maxlength="150" rows="3" placeholder="Máximo de 150 caracteres"></textarea>
+                </label>
+                <div class="filter-actions">
+                    <button type="button" class="btn-filter-secondary" id="report-cancel-button">Cancelar</button>
+                    <button type="submit" class="btn-filter-primary">Enviar denúncia</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -113,6 +141,10 @@
                         <div class="category-options-list" id="category-options-list"></div>
                     </div>
                     <select id="addpet-category" name="categorias" multiple hidden aria-hidden="true"></select>
+                </label>
+                <label class="form-field">
+                    <span>Contato</span>
+                    <input id="addpet-contact" type="tel" inputmode="tel" placeholder="(00) 00000-0000" required>
                 </label>
                 <label class="form-field">
                     <span>Descrição do animal</span>

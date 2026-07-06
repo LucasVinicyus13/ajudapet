@@ -666,6 +666,115 @@ body {
     margin-top: 1.5rem;
 }
 
+.btn-report {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 15px;
+    border: 1px solid #f0b5a2;
+    background: #fff6f2;
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.btn-report:hover {
+    background: #ffe8dc;
+}
+
+.btn-report-modal {
+    margin-top: 0.85rem;
+}
+
+.pet-card-actions {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.btn-ajudar-inline {
+    margin-top: 0.2rem;
+}
+
+.report-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition);
+    z-index: 400;
+}
+
+.report-modal.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.report-modal-card {
+    width: min(560px, 100%);
+    background: var(--white);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.report-copy {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.report-form {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.report-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    background: #fafcff;
+    border: 1px solid #e2e8f0;
+    font-weight: 700;
+    color: var(--secondary);
+}
+
+.report-field {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.report-field-hidden {
+    display: none;
+}
+
+.report-field-hidden.visible {
+    display: grid;
+}
+
+.report-field textarea {
+    width: 100%;
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    background: #fbfcff;
+    color: var(--text-dark);
+    font-size: 0.95rem;
+    resize: vertical;
+}
+
 /* Footer */
 .app-footer {
     padding: 2rem 0;

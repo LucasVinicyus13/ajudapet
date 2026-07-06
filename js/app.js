@@ -3,7 +3,8 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPetsPage, criarPet, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
+import { listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
+import { formatPhoneInput, normalizePhone } from './pet-utils.js';
 
 const CATEGORIES = [
     'Pequeno Porte',
@@ -118,6 +119,10 @@ let isLoadingPets = false;
 
 let editingPetId = null;
 let editingPetImageDataUrl = null;
+let reportModal = null;
+let reportReasonInputs = [];
+let reportOtherReasonInput = null;
+let currentReportPet = null;
 
 function attachImageFallback(imageElement) {
     if (!imageElement) return;
@@ -213,21 +218,41 @@ function populateCategorySelect() {
     });
 }
 
+function addCategory(value) {
+    const normalizedValue = String(value).trim();
+    if (!normalizedValue || selectedCategoryValues.includes(normalizedValue)) {
+        return;
+    }
+
+    selectedCategoryValues = [...selectedCategoryValues, normalizedValue];
+    if (categorySelect) {
+        updateHiddenCategorySelect();
+    }
+    syncCategoryPicker();
+}
+
+function removeCategory(value) {
+    const normalizedValue = String(value).trim();
+    if (!normalizedValue) {
+        return;
+    }
+
+    selectedCategoryValues = selectedCategoryValues.filter((item) => item !== normalizedValue);
+    if (categorySelect) {
+        updateHiddenCategorySelect();
+    }
+    syncCategoryPicker();
+}
+
 function toggleCategory(value) {
     const normalizedValue = String(value).trim();
     const hasValue = selectedCategoryValues.includes(normalizedValue);
 
     if (hasValue) {
-        selectedCategoryValues = selectedCategoryValues.filter((item) => item !== normalizedValue);
+        removeCategory(normalizedValue);
     } else {
-        selectedCategoryValues = [...selectedCategoryValues, normalizedValue];
+        addCategory(normalizedValue);
     }
-
-    if (categorySelect) {
-        updateHiddenCategorySelect();
-    }
-
-    syncCategoryPicker();
 }
 
 function resetCategoryPicker() {
@@ -306,6 +331,9 @@ async function initApp() {
     modalCity = document.getElementById('modal-city');
     modalDesc = document.getElementById('modal-desc');
     modalHelpBtn = document.getElementById('modal-help-btn');
+    reportModal = document.getElementById('report-modal');
+    reportReasonInputs = Array.from(document.querySelectorAll('input[name="report-reason"]'));
+    reportOtherReasonInput = document.getElementById('report-other-reason');
 
     filterButton = document.getElementById('filter-toggle-button');
     filterModal = document.getElementById('filter-modal');
@@ -326,6 +354,29 @@ async function initApp() {
         modalCloseButton.addEventListener('click', closeModal);
     }
 
+    const reportCloseButton = document.getElementById('report-close-button');
+    if (reportCloseButton) {
+        reportCloseButton.addEventListener('click', closeReportModal);
+    }
+
+    const reportCancelButton = document.getElementById('report-cancel-button');
+    if (reportCancelButton) {
+        reportCancelButton.addEventListener('click', closeReportModal);
+    }
+
+    const reportForm = document.getElementById('report-form');
+    if (reportForm) {
+        reportForm.addEventListener('submit', submitReport);
+    }
+
+    if (reportModal) {
+        reportModal.addEventListener('click', (event) => {
+            if (event.target === reportModal) {
+                closeReportModal();
+            }
+        });
+    }
+
     if (petModal) {
         petModal.addEventListener('click', (event) => {
             if (event.target === petModal) {
@@ -337,7 +388,7 @@ async function initApp() {
     if (modalHelpBtn) {
         modalHelpBtn.addEventListener('click', () => {
             if (selectedModalPet) {
-                window.ajudarPet(selectedModalPet.telefone, selectedModalPet.nome);
+                window.ajudarPet(getWhatsAppPhone(selectedModalPet), selectedModalPet.nome);
             }
         });
     }
@@ -437,17 +488,34 @@ function renderPetCard(pet) {
             <p class="pet-city">${pet.cidade}</p>
             <h3 class="pet-name">${pet.nome}</h3>
             <p class="pet-category">${categorias}</p>
-            <button class="btn-ajudar" onclick="ajudarPet('${pet.telefone}', '${pet.nome}')">
-                AJUDAR
-            </button>
+            <div class="pet-card-actions">
+                <button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>
+                <button type="button" class="btn-report" data-pet-report-btn>Denunciar</button>
+            </div>
         </div>
     `;
 
     const petImage = card.querySelector('img');
     attachImageFallback(petImage);
 
+    const helpButton = card.querySelector('[data-pet-help-btn]');
+    if (helpButton) {
+        helpButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            window.ajudarPet(getWhatsAppPhone(pet), pet.nome);
+        });
+    }
+
+    const reportButton = card.querySelector('[data-pet-report-btn]');
+    if (reportButton) {
+        reportButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            openReportModal(pet);
+        });
+    }
+
     card.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('btn-ajudar')) {
+        if (!e.target.closest('[data-pet-help-btn]') && !e.target.closest('[data-pet-report-btn]')) {
             abrirDetalhes(pet);
         }
     });
@@ -475,6 +543,11 @@ function openModal(pet) {
         modalCategory.textContent = formatCategories(pet);
     }
 
+    const reportButton = document.getElementById('modal-report-btn');
+    if (reportButton) {
+        reportButton.onclick = () => openReportModal(pet);
+    }
+
     petModal.classList.add('visible');
     petModal.setAttribute('aria-hidden', 'false');
 }
@@ -493,6 +566,89 @@ function fileToDataUrl(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+}
+
+function getWhatsAppPhone(pet) {
+    const rawValue = pet?.telefone || pet?.contato || '';
+    return normalizePhone(rawValue);
+}
+
+function openReportModal(pet) {
+    if (!reportModal) {
+        reportModal = document.getElementById('report-modal');
+        reportReasonInputs = Array.from(document.querySelectorAll('input[name="report-reason"]'));
+        reportOtherReasonInput = document.getElementById('report-other-reason');
+    }
+
+    if (!reportModal) return;
+
+    currentReportPet = pet;
+    const reportPetName = document.getElementById('report-pet-name');
+    if (reportPetName) {
+        reportPetName.textContent = pet?.nome || 'este post';
+    }
+
+    if (reportOtherReasonInput) {
+        reportOtherReasonInput.value = '';
+        reportOtherReasonInput.parentElement.classList.remove('visible');
+    }
+
+    reportReasonInputs.forEach((input) => {
+        input.checked = false;
+        input.onchange = () => {
+            if (reportOtherReasonInput) {
+                reportOtherReasonInput.parentElement.classList.toggle('visible', input.value === 'Outro');
+            }
+        };
+    });
+
+    reportModal.classList.add('visible');
+    reportModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeReportModal() {
+    if (!reportModal) return;
+    reportModal.classList.remove('visible');
+    reportModal.setAttribute('aria-hidden', 'true');
+    currentReportPet = null;
+}
+
+async function submitReport(event) {
+    event.preventDefault();
+
+    if (!currentReportPet) return;
+
+    const selectedReasonInput = document.querySelector('input[name="report-reason"]:checked');
+    const selectedReason = selectedReasonInput ? selectedReasonInput.value : '';
+    const customReason = reportOtherReasonInput ? reportOtherReasonInput.value.trim() : '';
+    const motivo = selectedReason === 'Outro' ? customReason : selectedReason;
+
+    if (!motivo) {
+        alert('Selecione um motivo e descreva o detalhe, quando necessário.');
+        return;
+    }
+
+    const reporterName = auth.currentUser?.displayName || auth.currentUser?.email || 'Usuário sem nome';
+    const petOwner = currentReportPet.ownerEmail || currentReportPet.ownerUid || 'usuário';
+    const reportPayload = {
+        petId: currentReportPet.id,
+        petName: currentReportPet.nome,
+        reporterName,
+        reporterEmail: auth.currentUser?.email || '',
+        motivo,
+        ownerIdentifier: petOwner
+    };
+
+    try {
+        await criarDenuncia(reportPayload);
+        const subject = encodeURIComponent(`Denúncia registrada no post de ${petOwner}`);
+        const body = encodeURIComponent(`Uma denuncia foi registrada no post de ${petOwner}, pelo motivo de ${motivo}\n\nVerificar post: ${window.location.origin}/pages/verificar-post.html?id=${currentReportPet.id}`);
+        window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
+        closeReportModal();
+    } catch (error) {
+        console.error('Erro ao registrar denúncia:', error);
+        alert('Não foi possível registrar a denúncia. Tente novamente.');
+    }
 }
 
 function openAddPetModal() {
@@ -521,12 +677,16 @@ function openAddPetModalWithData(pet) {
         const cityInput = document.getElementById('addpet-city');
         const statusInput = document.getElementById('addpet-status');
         const descInput = document.getElementById('addpet-desc');
+        const contactInput = document.getElementById('addpet-contact');
 
         if (nameInput) nameInput.value = pet.nome || '';
         if (ageInput) ageInput.value = pet.idade || '';
         if (cityInput) cityInput.value = pet.cidade || '';
         if (statusInput) statusInput.value = pet.status || 'resgate';
         if (descInput) descInput.value = pet.descricao || '';
+        if (contactInput) {
+            contactInput.value = pet.contato || formatPhoneInput(pet.telefone || '');
+        }
 
         // select categories (aceita array ou string) - case-insensitive
         if (pet.categoria) {
@@ -567,6 +727,7 @@ async function initAddPetForm() {
     const closeButton = document.getElementById('add-pet-close');
 
     const cancelButton = document.getElementById('add-pet-cancel');
+    const contactInput = document.getElementById('addpet-contact');
     const modal = document.getElementById('add-pet-modal');
 
     categorySelect = document.getElementById('addpet-category');
@@ -577,6 +738,15 @@ async function initAddPetForm() {
 
     populateCategorySelect();
     syncCategoryPicker();
+
+    if (contactInput) {
+        contactInput.addEventListener('input', (event) => {
+            const formattedValue = formatPhoneInput(event.target.value);
+            if (event.target.value !== formattedValue) {
+                event.target.value = formattedValue;
+            }
+        });
+    }
 
     if (cancelButton) {
         cancelButton.addEventListener('click', () => {
@@ -615,6 +785,7 @@ async function initAddPetForm() {
         const cityInput = document.getElementById('addpet-city');
         const statusInput = document.getElementById('addpet-status');
         const descInput = document.getElementById('addpet-desc');
+        const contactInput = document.getElementById('addpet-contact');
 
         const selectedCategories = [...selectedCategoryValues];
 
@@ -646,7 +817,8 @@ async function initAddPetForm() {
         const status = statusInput.value;
         const categoria = selectedCategories;
         const descricao = descInput.value.trim();
-        const telefone = '55999999999';
+        const contato = formatPhoneInput(contactInput ? contactInput.value : '');
+        const telefone = normalizePhone(contato);
         const currentUser = auth.currentUser;
         if (!currentUser) {
             alert('Faça login para publicar um animal.');
@@ -663,6 +835,7 @@ async function initAddPetForm() {
             categoria,
             descricao,
             imagem,
+            contato,
             telefone,
             ownerEmail: currentUser.email,
             ownerUid: currentUser.uid
@@ -778,13 +951,20 @@ window.ajudarPet = function (telefone, nomePet) {
         return;
     }
 
+    const telefoneLimpo = normalizePhone(telefone);
+    if (!telefoneLimpo) {
+        alert('Este post não possui um contato válido para WhatsApp.');
+        return;
+    }
+
     const mensagem = encodeURIComponent(`Olá! Vi o ${nomePet} no AjudaPet e gostaria de saber como posso ajudar.`);
-    const whatsappUrl = `https://wa.me/${telefone}?text=${mensagem}`;
+    const whatsappUrl = `https://wa.me/${telefoneLimpo}?text=${mensagem}`;
     window.open(whatsappUrl, '_blank');
 };
 
 window.openAddPetModal = openAddPetModal;
 window.openAddPetModalForEdit = openAddPetModalWithData;
 window.loadPets = loadPets;
+window.openReportModal = openReportModal;
 
 window.addEventListener('DOMContentLoaded', initApp);

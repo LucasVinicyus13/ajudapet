@@ -10,6 +10,7 @@ import {
     collection,
     addDoc,
     getDocs,
+    getDoc,
     query,
     orderBy,
     limit as firestoreLimit,
@@ -18,7 +19,8 @@ import {
     updateDoc,
     doc,
     deleteDoc,
-    serverTimestamp
+    serverTimestamp,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
     getAuth,
@@ -34,6 +36,7 @@ import {
     getDownloadURL,
     deleteObject
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { formatPhoneInput, normalizePhone, isAdminEmail } from './pet-utils.js';
 
 // CONFIGURAÇÃO DO FIREBASE (Substitua pelos seus dados do Console do Firebase)
 const firebaseConfig = {
@@ -57,13 +60,15 @@ const storage = getStorage(app);
  */
 export async function criarPet(dados) {
     try {
-        // Validação básica (regras do projeto)
-        if (!dados.telefone || !dados.imagem) {
-            throw new Error("Telefone e Imagem são obrigatórios.");
+        const telefoneLimpo = normalizePhone(dados.contato || dados.telefone || '');
+        if (!telefoneLimpo || !dados.imagem) {
+            throw new Error("Contato e Imagem são obrigatórios.");
         }
 
         const docRef = await addDoc(collection(db, "pets"), {
             ...dados,
+            contato: dados.contato || formatPhoneInput(telefoneLimpo),
+            telefone: telefoneLimpo,
             dataCriacao: serverTimestamp()
         });
 
@@ -199,9 +204,16 @@ export async function atualizarStatus(id, novoStatus) {
  */
 export async function atualizarPet(id, dados) {
     try {
+        const petPayload = { ...dados };
+        const telefoneLimpo = normalizePhone(petPayload.contato || petPayload.telefone || '');
+        if (telefoneLimpo) {
+            petPayload.contato = petPayload.contato || formatPhoneInput(telefoneLimpo);
+            petPayload.telefone = telefoneLimpo;
+        }
+
         const petRef = doc(db, "pets", id);
         await updateDoc(petRef, {
-            ...dados,
+            ...petPayload,
             dataAtualizacao: serverTimestamp()
         });
         console.log(`Pet ${id} atualizado.`);
@@ -243,6 +255,29 @@ export async function deletarPet(id) {
 // Inicializa o Auth do Firebase
 const auth = getAuth(app);
 
+async function ensureUserProfile(user, extraData = {}) {
+    if (!user?.uid) return;
+
+    const profileRef = doc(db, 'users', user.uid);
+    const profileData = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        avatarUrl: '',
+        isAdmin: isAdminEmail(user.email),
+        ...extraData
+    };
+
+    await setDoc(profileRef, profileData, { merge: true });
+}
+
+async function updateUserProfileData(uid, data) {
+    if (!uid) return;
+
+    const profileRef = doc(db, 'users', uid);
+    await setDoc(profileRef, data, { merge: true });
+}
+
 /**
  * Registra um usuário usando e-mail e senha.
  * @param {string} name - Nome completo do usuário.
@@ -256,6 +291,7 @@ export async function registerUser(name, email, password) {
         if (name) {
             await updateProfile(userCredential.user, { displayName: name });
         }
+        await ensureUserProfile(userCredential.user, { displayName: name, email, avatarUrl: '' });
         return userCredential.user;
     } catch (error) {
         console.error("Erro ao registrar usuário:", error);
@@ -302,6 +338,10 @@ export async function uploadUserAvatar(uid, imageBlob) {
         const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
         await uploadBytes(avatarRef, imageBlob);
         const downloadUrl = await getDownloadURL(avatarRef);
+        await updateUserProfileData(uid, { avatarUrl: downloadUrl });
+        if (auth.currentUser?.uid === uid) {
+            await updateProfile(auth.currentUser, { photoURL: downloadUrl });
+        }
         console.log("Avatar enviado com sucesso:", downloadUrl);
         return downloadUrl;
     } catch (error) {
@@ -317,10 +357,17 @@ export async function uploadUserAvatar(uid, imageBlob) {
  */
 export async function getUserAvatarUrl(uid) {
     try {
+        const profileSnap = await getDoc(doc(db, 'users', uid));
+        if (profileSnap.exists()) {
+            const profileData = profileSnap.data();
+            if (profileData?.avatarUrl) {
+                return profileData.avatarUrl;
+            }
+        }
+
         const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
         return await getDownloadURL(avatarRef);
     } catch (error) {
-        // Se o arquivo não existir, retorna null
         if (error.code === 'storage/object-not-found') {
             return null;
         }
@@ -338,14 +385,46 @@ export async function deleteUserAvatar(uid) {
     try {
         const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
         await deleteObject(avatarRef);
+        await updateUserProfileData(uid, { avatarUrl: '' });
+        if (auth.currentUser?.uid === uid) {
+            await updateProfile(auth.currentUser, { photoURL: null });
+        }
         console.log("Avatar deletado com sucesso");
     } catch (error) {
-        // Se o arquivo não existir, apenas log
         if (error.code === 'storage/object-not-found') {
+            await updateUserProfileData(uid, { avatarUrl: '' });
             console.log("Avatar não encontrado no storage");
             return;
         }
         console.error("Erro ao deletar avatar:", error);
+        throw error;
+    }
+}
+
+export async function criarDenuncia(dados) {
+    try {
+        const docRef = await addDoc(collection(db, 'reports'), {
+            ...dados,
+            dataCriacao: serverTimestamp()
+        });
+        return docRef.id;
+    } catch (error) {
+        console.error('Erro ao registrar denúncia:', error);
+        throw error;
+    }
+}
+
+export async function buscarPetPorId(id) {
+    try {
+        const petRef = doc(db, 'pets', id);
+        const snapshot = await getDoc(petRef);
+        if (!snapshot.exists()) {
+            return null;
+        }
+
+        return { id: snapshot.id, ...snapshot.data() };
+    } catch (error) {
+        console.error('Erro ao buscar pet por ID:', error);
         throw error;
     }
 }
