@@ -408,6 +408,12 @@ body {
     transform: translateY(-1px);
 }
 
+.category-option-pill.selected {
+    background: rgba(255, 107, 53, 0.14);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
 .btn-submit-full {
     width: 100%;
     padding: 1rem 1.25rem;

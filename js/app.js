@@ -100,6 +100,7 @@ let categorySelect = null;
 let categorySelectedList = null;
 let categoryOptionsList = null;
 let selectedCategoryValues = [];
+let isSubmittingPet = false;
 
 let allPets = [];
 let selectedFilterCategories = [];
@@ -143,6 +144,13 @@ function formatCategories(pet) {
     return getCategories(pet).join(', ');
 }
 
+function updateHiddenCategorySelect() {
+    if (!categorySelect) return;
+    Array.from(categorySelect.options).forEach((option) => {
+        option.selected = selectedCategoryValues.includes(option.value);
+    });
+}
+
 function syncCategoryPicker() {
     if (!categorySelect || !categorySelectedList || !categoryOptionsList) return;
 
@@ -163,6 +171,13 @@ function syncCategoryPicker() {
         });
     }
 
+    Array.from(categorySelectedList.querySelectorAll('.category-chip-remove')).forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            toggleCategory(button.dataset.value);
+        });
+    });
+
     categoryOptionsList.innerHTML = '';
     CATEGORIES.forEach((value) => {
         if (selectedValues.includes(value)) return;
@@ -170,10 +185,17 @@ function syncCategoryPicker() {
         const optionButton = document.createElement('button');
         optionButton.type = 'button';
         optionButton.className = 'category-option-pill';
+        optionButton.setAttribute('aria-pressed', 'false');
         optionButton.dataset.value = value;
         optionButton.textContent = value;
+        optionButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            toggleCategory(value);
+        });
         categoryOptionsList.appendChild(optionButton);
     });
+
+    updateHiddenCategorySelect();
 }
 
 function populateCategorySelect() {
@@ -188,8 +210,6 @@ function populateCategorySelect() {
 }
 
 function toggleCategory(value) {
-    if (!categorySelect) return;
-
     const normalizedValue = String(value).trim();
     const hasValue = selectedCategoryValues.includes(normalizedValue);
 
@@ -199,9 +219,9 @@ function toggleCategory(value) {
         selectedCategoryValues = [...selectedCategoryValues, normalizedValue];
     }
 
-    Array.from(categorySelect.options).forEach((option) => {
-        option.selected = selectedCategoryValues.includes(option.value);
-    });
+    if (categorySelect) {
+        updateHiddenCategorySelect();
+    }
 
     syncCategoryPicker();
 }
@@ -542,18 +562,18 @@ async function initAddPetForm() {
     populateCategorySelect();
     syncCategoryPicker();
 
-    const categoryPicker = document.getElementById('category-picker');
-    categoryPicker.addEventListener('click', (event) => {
+    categoryOptionsList.addEventListener('click', (event) => {
         const optionButton = event.target.closest('.category-option-pill');
-        if (optionButton) {
-            toggleCategory(optionButton.dataset.value);
-            return;
-        }
+        if (!optionButton) return;
+        event.preventDefault();
+        toggleCategory(optionButton.dataset.value);
+    });
 
+    categorySelectedList.addEventListener('click', (event) => {
         const removeButton = event.target.closest('.category-chip-remove');
-        if (removeButton) {
-            toggleCategory(removeButton.dataset.value);
-        }
+        if (!removeButton) return;
+        event.preventDefault();
+        toggleCategory(removeButton.dataset.value);
     });
 
     if (cancelButton) {
@@ -580,10 +600,11 @@ async function initAddPetForm() {
             submitButton.textContent = submitting ? 'Enviando...' : submitButtonText;
         };
 
-        if (submitButton && submitButton.disabled) {
+        if (isSubmittingPet || (submitButton && submitButton.disabled)) {
             return;
         }
 
+        isSubmittingPet = true;
         setSubmitting(true);
 
         const imageInput = document.getElementById('addpet-image');
@@ -605,12 +626,14 @@ async function initAddPetForm() {
 
         if (!imagem) {
             alert('Envie uma foto do animal.');
+            isSubmittingPet = false;
             setSubmitting(false);
             return;
         }
 
         if (selectedCategoryValues.length === 0) {
             alert('Selecione pelo menos uma categoria.');
+            isSubmittingPet = false;
             setSubmitting(false);
             return;
         }
@@ -625,6 +648,7 @@ async function initAddPetForm() {
         const currentUser = auth.currentUser;
         if (!currentUser) {
             alert('Faça login para publicar um animal.');
+            isSubmittingPet = false;
             setSubmitting(false);
             return;
         }
@@ -653,6 +677,7 @@ async function initAddPetForm() {
             form.reset();
             resetCategoryPicker();
             await loadPets();
+            window.location.reload();
         } catch (error) {
             console.error('Erro ao publicar pet:', error);
             const permissionDenied = error && ((error.code && error.code.includes('permission')) || (error.message && error.message.toLowerCase().includes('permission')) || (error.message && error.message.toLowerCase().includes('insufficient permissions')));
@@ -672,6 +697,7 @@ async function initAddPetForm() {
             }
             alert('Não foi possível publicar o animal. Tente novamente.');
         } finally {
+            isSubmittingPet = false;
             setSubmitting(false);
         }
     });
