@@ -562,20 +562,6 @@ async function initAddPetForm() {
     populateCategorySelect();
     syncCategoryPicker();
 
-    categoryOptionsList.addEventListener('click', (event) => {
-        const optionButton = event.target.closest('.category-option-pill');
-        if (!optionButton) return;
-        event.preventDefault();
-        toggleCategory(optionButton.dataset.value);
-    });
-
-    categorySelectedList.addEventListener('click', (event) => {
-        const removeButton = event.target.closest('.category-chip-remove');
-        if (!removeButton) return;
-        event.preventDefault();
-        toggleCategory(removeButton.dataset.value);
-    });
-
     if (cancelButton) {
         cancelButton.addEventListener('click', () => {
             closeAddPetModal();
