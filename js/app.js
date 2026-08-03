@@ -439,7 +439,7 @@ async function initApp() {
     updateFilterButtonText();
 
     await initAddPetForm();
-    await loadPets();
+    await loadPets(true);
 }
 
 function sortPetsByUrgency(pets) {
@@ -901,7 +901,7 @@ async function loadPets(reset = false) {
     isLoadingPets = true;
 
     const feedContainer = document.getElementById('pet-feed');
-    if (reset && feedContainer) {
+    if (feedContainer) {
         feedContainer.innerHTML = '<div class="loading">Carregando animais...</div>';
     }
 
