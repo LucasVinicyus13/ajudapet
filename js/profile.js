@@ -36,7 +36,8 @@ async function renderProfile(user) {
     emailField.textContent = user.email || 'Sem e-mail';
     
     try {
-        avatar.src = await getProfileImagePath(user.uid);
+        const avatarUrl = await getProfileImagePath(user.uid);
+        avatar.src = avatarUrl;
     } catch (error) {
         console.error('Erro ao carregar avatar:', error);
         avatar.src = getDefaultProfileImagePath();

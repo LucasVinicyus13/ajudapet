@@ -16,8 +16,14 @@ export async function getProfileImagePath(uid) {
     try {
         const userId = uid || auth.currentUser?.uid;
         if (userId) {
+            const currentPhotoUrl = auth.currentUser?.uid === userId ? auth.currentUser?.photoURL : null;
+            if (currentPhotoUrl) {
+                return currentPhotoUrl;
+            }
+
             const firebaseUrl = await getUserAvatarUrl(userId);
             if (firebaseUrl) {
+                localStorage.setItem(PROFILE_AVATAR_KEY, firebaseUrl);
                 return firebaseUrl;
             }
         }
