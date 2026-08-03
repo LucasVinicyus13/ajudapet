@@ -3,7 +3,7 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
+import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
 import { formatPhoneInput, normalizePhone } from './pet-utils.js';
 
 const CATEGORIES = [
@@ -918,7 +918,18 @@ async function loadPets(reset = false) {
 
     try {
         const result = await listarPetsPage(PETS_PAGE_SIZE, lastVisiblePetDoc);
-        const newPets = (result && result.pets && result.pets.length > 0) ? result.pets : [];
+        let newPets = (result && result.pets && result.pets.length > 0) ? result.pets : [];
+
+        if (newPets.length === 0 && reset) {
+            // Se a paginação inicial falhar ou não retornar pets, tenta carregar tudo para maior tolerância.
+            console.warn('Nenhum pet retornado pela paginação inicial, tentando listar todos os pets diretamente.');
+            const fallbackPets = await listarPets();
+            if (Array.isArray(fallbackPets) && fallbackPets.length > 0) {
+                newPets = fallbackPets;
+                lastVisiblePetDoc = null;
+                hasMorePets = false;
+            }
+        }
 
         if (reset) {
             allPets = newPets;
@@ -928,8 +939,8 @@ async function loadPets(reset = false) {
             renderPets(sortPetsByUrgency(getFilteredPets(allPets)), 'Nenhum animal disponível no momento.', false);
         }
 
-        lastVisiblePetDoc = result.lastVisibleDoc;
-        hasMorePets = result.hasMore;
+        lastVisiblePetDoc = result?.lastVisibleDoc || null;
+        hasMorePets = result?.hasMore ?? false;
         if (!hasMorePets && allPets.length === 0 && feedContainer) {
             feedContainer.innerHTML = '<div class="loading">Nenhum animal disponível no momento.</div>';
         }
