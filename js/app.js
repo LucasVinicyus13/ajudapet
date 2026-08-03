@@ -660,7 +660,13 @@ async function submitReport(event) {
             window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
         }, 500);
         
-        alert('Denúncia registrada com sucesso! Um e-mail de notificação será enviado.');\n    } catch (error) {\n        console.error('❌ Erro completo ao registrar denúncia:', error);\n        console.error('Código de erro:', error?.code);\n        console.error('Mensagem:', error?.message);\n        alert('Não foi possível registrar a denúncia. Verifique sua conexão e tente novamente.\\nErro: ' + (error?.message || 'desconhecido'));\n    }
+        alert('Denúncia registrada com sucesso! Um e-mail de notificação será enviado.');
+    } catch (error) {
+        console.error('❌ Erro completo ao registrar denúncia:', error);
+        console.error('Código de erro:', error?.code);
+        console.error('Mensagem:', error?.message);
+        alert('Não foi possível registrar a denúncia. Verifique sua conexão e tente novamente.\nErro: ' + (error?.message || 'desconhecido'));
+    }
 }
 
 function openAddPetModal() {
