@@ -1,6 +1,6 @@
 import { auth, observeAuthState, listarPets, deletarPet } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
-import { formatDateTime, computeAgeDaysFromPet, formatCityWithState } from './pet-utils.js';
+import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories } from './pet-utils.js';
 
 let currentUser = null;
 
@@ -122,20 +122,26 @@ async function renderUserPosts(user) {
 
 function renderPostCard(pet, user) {
     const card = document.createElement('div');
-    card.className = 'profile-post-card';
+    card.className = 'pet-card';
+    const categorias = formatCategories(pet) || '';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
     const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
     card.innerHTML = `
+        <span class="pet-status status-${pet.status}">${pet.status}</span>
         <img src="${pet.imagem || '../assets/images/placeholder.svg'}" alt="${pet.nome}">
-        <div class="post-header">
-            <h3 class="post-name">${pet.nome}</h3>
-            <span class="pet-status status-${pet.status}">${pet.status}</span>
+        <div class="pet-info">
+            <div class="post-header">
+                <h3 class="pet-name">${pet.nome}</h3>
+            </div>
+            <p class="post-date">${pubDate || 'Data não disponível'}</p>
+            <p class="pet-age">${ageText}</p>
+            <p class="pet-city">${formatCityWithState(pet)}</p>
+            ${categorias ? `<p class="pet-category">${categorias}</p>` : ''}
+            <div class="pet-card-actions">
+                <button type="button" class="btn-ajudar btn-ajudar-inline" onclick="openWhatsapp('${pet.telefone}', '${pet.nome}')">AJUDAR</button>
+            </div>
         </div>
-        <p class="post-date">${pubDate || 'Data não disponível'}</p>
-        <p class="pet-age">${ageText}</p>
-        <p class="post-city">${formatCityWithState(pet)}</p>
-        <button type="button" class="btn-ajudar" onclick="openWhatsapp('${pet.telefone}', '${pet.nome}')">AJUDAR</button>
     `;
 
     const postImage = card.querySelector('img');
@@ -146,14 +152,14 @@ function renderPostCard(pet, user) {
         }, { once: true });
     }
 
-    // se for dono do post, adicionar o menu de ações
+    // se for dono do post, adicionar o menu de ações no topo da área branca
     try {
         const isOwner = user && (pet.ownerEmail === user.email || pet.ownerUid === user.uid);
         if (isOwner) {
-            const header = card.querySelector('.post-header');
-            if (header) {
+            const info = card.querySelector('.pet-info');
+            if (info) {
                 const menu = createPostMenu(pet, user);
-                header.appendChild(menu);
+                info.appendChild(menu);
             }
         }
     } catch (e) {

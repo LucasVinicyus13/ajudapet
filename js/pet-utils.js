@@ -78,6 +78,27 @@ export function computeAgeDaysFromPet(pet) {
   return null;
 }
 
+export function getCategories(pet) {
+  if (!pet) return [];
+
+  if (Array.isArray(pet.categoria)) {
+    return pet.categoria.filter(Boolean);
+  }
+
+  if (typeof pet.categoria === 'string') {
+    return pet.categoria
+      .split(',')
+      .map((categoria) => categoria.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+export function formatCategories(pet) {
+  return getCategories(pet).join(', ');
+}
+
 export function formatCityWithState(pet) {
   if (!pet) return '';
   const raw = pet.cidade || '';
