@@ -7,14 +7,26 @@ import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet
 import { formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState } from './pet-utils.js';
 
 const CATEGORIES = [
+    // Porte / Tamanho
     'Pequeno Porte',
     'Médio Porte',
     'Grande Porte',
+    // Espécies / Tipos
     'Cachorros',
     'Gatos',
     'Pássaros',
+    'Répteis & Anfíbios',
+    'Roedores & Pequenos Mamíferos',
+    'Peixes & Aquarismo',
+    'Animais de Fazenda / Grande Porte Rural',
+    'Exóticos / Silvestres',
+    // Categorias gerais
     'Mamíferos',
-    'Carnívoros'
+    'Carnívoros',
+    // Idade / Estágio de vida
+    'Filhotes',
+    'Adultos',
+    'Sênior / Idosos'
 ];
 
 const FALLBACK_IMAGE = './assets/images/placeholder.svg';
