@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime } from './pet-utils.js';
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');
@@ -15,4 +15,9 @@ test('normalizePhone remove máscara para WhatsApp', () => {
 test('isAdminEmail aceita o e-mail autorizado', () => {
   assert.equal(isAdminEmail('lucasvinicyussanches@gmail.com'), true);
   assert.equal(isAdminEmail('outro@email.com'), false);
+});
+
+test('formatDateTime formata a data e hora no padrão pedido', () => {
+  const date = new Date('2024-05-10T09:05:00');
+  assert.equal(formatDateTime(date), '10/05/2024 - 09:05');
 });

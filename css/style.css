@@ -207,6 +207,20 @@ body {
     margin-bottom: 0.25rem;
 }
 
+.post-date {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.pet-age {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+}
+
 .pet-name {
     font-size: 1.25rem;
     font-weight: 700;
