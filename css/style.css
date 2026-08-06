@@ -732,6 +732,8 @@ body {
 
 .modal-content {
     padding: 1.5rem;
+    max-height: calc(90vh - 240px);
+    overflow-y: auto;
 }
 
 .modal-desc {
