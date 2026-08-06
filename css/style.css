@@ -334,6 +334,15 @@ body {
     font-weight: 500;
 }
 
+.loading.hidden {
+    display: none;
+}
+
+.end-of-feed {
+    color: var(--text-muted);
+    padding: 2rem 1rem;
+}
+
 .add-pet-modal {
     position: fixed;
     inset: 0;

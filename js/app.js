@@ -5765,7 +5765,7 @@ let categoryOptionsList = null;
 let selectedCategoryValues = [];
 let isSubmittingPet = false;
 
-const PETS_PAGE_SIZE = 6;
+const PETS_PAGE_SIZE = 4;
 let allPets = [];
 let selectedFilterCategories = [];
 let pendingFilterCategories = [];
@@ -5785,6 +5785,8 @@ let reportModal = null;
 let reportReasonInputs = [];
 let reportOtherReasonInput = null;
 let currentReportPet = null;
+let loadingMoreIndicator = null;
+let endOfFeedMessage = null;
 
 function attachImageFallback(imageElement) {
     if (!imageElement) return;
@@ -6003,6 +6005,8 @@ async function initApp() {
     filterApplyButton = document.getElementById('filter-apply-button');
     filterClearButton = document.getElementById('filter-clear-button');
     filterCloseButton = document.getElementById('filter-close-button');
+    loadingMoreIndicator = document.getElementById('loading-more');
+    endOfFeedMessage = document.getElementById('end-of-feed');
 
     window.addEventListener('scroll', () => {
         if (!hasMorePets || isLoadingPets) return;
@@ -6626,7 +6630,7 @@ async function loadPets(reset = false) {
     isLoadingPets = true;
 
     const feedContainer = document.getElementById('pet-feed');
-    if (feedContainer) {
+    if (reset && feedContainer) {
         feedContainer.innerHTML = '<div class="loading">Carregando animais...</div>';
     }
 
@@ -6634,11 +6638,24 @@ async function loadPets(reset = false) {
         allPets = [];
         lastVisiblePetDoc = null;
         hasMorePets = true;
+        if (loadingMoreIndicator) {
+            loadingMoreIndicator.classList.add('hidden');
+        }
+        if (endOfFeedMessage) {
+            endOfFeedMessage.classList.add('hidden');
+        }
     }
 
     if (!hasMorePets) {
+        if (endOfFeedMessage && allPets.length > 0) {
+            endOfFeedMessage.classList.remove('hidden');
+        }
         isLoadingPets = false;
         return;
+    }
+
+    if (!reset && loadingMoreIndicator) {
+        loadingMoreIndicator.classList.remove('hidden');
     }
 
     try {
@@ -6661,11 +6678,17 @@ async function loadPets(reset = false) {
             renderFilteredPets();
         } else {
             allPets = [...allPets, ...newPets];
-            renderPets(sortPetsByUrgency(getFilteredPets(allPets)), 'Nenhum animal disponível no momento.', false);
+            const newFilteredPets = getFilteredPets(newPets);
+            if (newFilteredPets.length > 0) {
+                renderPets(sortPetsByUrgency(newFilteredPets), 'Nenhum animal disponível no momento.', true);
+            }
         }
 
         lastVisiblePetDoc = result?.lastVisibleDoc || null;
         hasMorePets = result?.hasMore ?? false;
+        if (endOfFeedMessage) {
+            endOfFeedMessage.classList.toggle('hidden', hasMorePets || allPets.length === 0);
+        }
         if (!hasMorePets && allPets.length === 0 && feedContainer) {
             feedContainer.innerHTML = '<div class="loading">Nenhum animal disponível no momento.</div>';
         }
@@ -6676,6 +6699,9 @@ async function loadPets(reset = false) {
             renderFilteredPets();
         }
     } finally {
+        if (loadingMoreIndicator) {
+            loadingMoreIndicator.classList.add('hidden');
+        }
         isLoadingPets = false;
     }
 
