@@ -4,7 +4,7 @@
  */
 
 import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
-import { formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState } from './pet-utils.js';
+import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState } from './pet-utils.js';
 
 const CATEGORIES = [
     // Porte / Tamanho
@@ -6227,13 +6227,21 @@ function closeModal() {
     selectedModalPet = null;
 }
 
-function fileToDataUrl(file) {
-    return new Promise((resolve, reject) => {
+async function fileToDataUrl(file) {
+    const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+
+    let compressed = await compressImageDataUrl(dataUrl);
+
+    if (getDataUrlSizeInBytes(compressed) > 1048487) {
+        compressed = await compressImageDataUrl(dataUrl, { maxWidth: 320, quality: 0.1, targetBytes: 900000, maxAttempts: 5 });
+    }
+
+    return compressed;
 }
 
 function getWhatsAppPhone(pet) {
@@ -6508,6 +6516,7 @@ async function initAddPetForm() {
         const contactInput = document.getElementById('addpet-contact');
 
         const selectedCategories = [...selectedCategoryValues];
+        const currentUser = auth.currentUser;
 
         let imagem = null;
         if (imageInput.files.length) {
@@ -6551,7 +6560,6 @@ async function initAddPetForm() {
         const descricao = descInput.value.trim();
         const contato = formatPhoneInput(contactInput ? contactInput.value : '');
         const telefone = normalizePhone(contato);
-        const currentUser = auth.currentUser;
         if (!currentUser) {
             alert('Faça login para publicar um animal.');
             isSubmittingPet = false;

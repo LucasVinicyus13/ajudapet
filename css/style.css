@@ -985,7 +985,7 @@ body {
 
 @media (min-width: 720px) {
     .profile-posts {
-        grid-template-columns: repeat(auto-fit, minmax(320px, 520px));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
