@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AjudaPet - Guia de Denúncias</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #004e64;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #FF6B35;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 107, 53, 0.2);
+        }
+        .card-title {
+            font-weight: 700;
+            color: #FF6B35;
+            margin-bottom: 0.3rem;
+        }
+        .card-desc {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .card-link {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(180deg, #FF8A4B, #FF6B35);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .card-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+        }
+        .error-banner {
+            background: #ffebee;
+            border-left: 4px solid #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #c62828;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .error-banner strong {
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .footer {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.85rem;
+            color: #999;
+        }
+        .emoji {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 Sistema de Denúncias</h1>
+        <p class="subtitle">Não está funcionando? Veja como configurar!</p>
+
+        <div class="error-banner">
+            <strong>❌ Erro: "Não foi possível registrar a denúncia"</strong>
+            O Firestore não tem permissão para criar denúncias. Siga os guias abaixo para resolver!
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <span class="emoji">✅</span>
+                <div class="card-title">1️⃣ Configurar (COMECE AQUI)</div>
+                <div class="card-desc">Guia visual passo a passo para ativar as denúncias.</div>
+                <a href="./configurar.html" class="card-link">→ Abrir Configuração</a>
+            </div>
+
+            <div class="card">
+                <span class="emoji">🧪</span>
+                <div class="card-title">2️⃣ Testar</div>
+                <div class="card-desc">Verificar se as denúncias estão funcionando.</div>
+                <a href="./teste-denuncia.html" class="card-link">→ Testar Agora</a>
+            </div>
+
+            <div class="card">
+                <span class="emoji">📋</span>
+                <div class="card-title">3️⃣ Solução Rápida</div>
+                <div class="card-desc">Instruções diretas em Markdown.</div>
+                <a href="./SOLUCAO_RAPIDA.md" class="card-link">→ Ler</a>
+            </div>
+
+            <div class="card">
+                <span class="emoji">🔍</span>
+                <div class="card-title">4️⃣ Troubleshooting</div>
+                <div class="card-desc">Guia completo de erros e soluções.</div>
+                <a href="./GUIA_ERROS_DENUNCIA.md" class="card-link">→ Ler</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            💡 <strong>Dica:</strong> Se você está aqui pela primeira vez, clique em "Configurar (COMECE AQUI)" acima.
+        </div>
+    </div>
+</body>
+</html>
