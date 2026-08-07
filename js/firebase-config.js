@@ -278,6 +278,13 @@ async function updateUserProfileData(uid, data) {
     await setDoc(profileRef, data, { merge: true });
 }
 
+export async function saveUserAvatarUrl(uid, avatarUrl) {
+    if (!uid || !avatarUrl) return null;
+
+    await updateUserProfileData(uid, { avatarUrl });
+    return avatarUrl;
+}
+
 /**
  * Registra um usuário usando e-mail e senha.
  * @param {string} name - Nome completo do usuário.
@@ -348,6 +355,17 @@ export async function uploadUserAvatar(uid, imageBlob) {
         console.error("Erro ao enviar avatar:", error);
         throw error;
     }
+}
+
+export async function saveUserAvatarString(uid, avatarUrl) {
+    if (!uid || !avatarUrl) {
+        throw new Error('UID e avatarUrl são obrigatórios.');
+    }
+    await updateUserProfileData(uid, { avatarUrl });
+    if (auth.currentUser?.uid === uid) {
+        await updateProfile(auth.currentUser, { photoURL: avatarUrl });
+    }
+    return avatarUrl;
 }
 
 /**

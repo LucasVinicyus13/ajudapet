@@ -1,4 +1,4 @@
-import { uploadUserAvatar, getUserAvatarUrl, deleteUserAvatar } from './firebase-config.js';
+import { uploadUserAvatar, getUserAvatarUrl, deleteUserAvatar, saveUserAvatarUrl } from './firebase-config.js';
 import { auth } from './firebase-config.js';
 
 const PROFILE_AVATAR_KEY = 'ajudapet-profile-avatar';
@@ -54,6 +54,13 @@ export async function setProfileImage(dataUrl, uid) {
     }
 
     try {
+        if (typeof dataUrl === 'string' && !dataUrl.startsWith('data:image')) {
+            // Já é uma URL externa ou string de avatar
+            const savedUrl = await saveUserAvatarUrl(userId, dataUrl);
+            localStorage.setItem(PROFILE_AVATAR_KEY, savedUrl);
+            return savedUrl;
+        }
+
         // Converter data URL para Blob
         const response = await fetch(dataUrl);
         const blob = await response.blob();
