@@ -187,4 +187,6 @@ Agradeço ao professor **Mateus Barbosa Reck**, ao **Colégio Estadual Barbosa F
 
 Se este projeto foi útil para você, deixe uma ⭐ no repositório.
 
+<img src="assets/images/AjudaPet.png" width="500">
+
 </div>
