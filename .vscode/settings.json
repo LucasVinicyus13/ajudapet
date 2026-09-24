@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /workspaces/ajudapet && node --test js/pet-utils\\.test\\.js && node --check js/app\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

@@ -31,6 +31,53 @@ const CATEGORIES = [
 
 const FALLBACK_IMAGE = './assets/images/placeholder.svg';
 
+const EMAILJS_CONFIG = {
+    serviceId: 'service_gy5u2oa',
+    templateId: 'template_mfg3oh5',
+    publicKey: '9QiT5PgUyYcIT_J7V'
+};
+
+window.EMAILJS_CONFIG = EMAILJS_CONFIG;
+
+function buildReportEmailContent(petOwner, motivo, petId) {
+    const subject = `Denúncia registrada no post de ${petOwner}`;
+    const message = `Uma denuncia foi registrada no post de ${petOwner}, pelo motivo de ${motivo}\n\nVerificar post: ${window.location.origin}/pages/verificar-post.html?id=${petId}`;
+
+    return { subject, message };
+}
+
+function isEmailJsConfigured() {
+    return typeof window.emailjs !== 'undefined'
+        && EMAILJS_CONFIG.serviceId
+        && EMAILJS_CONFIG.templateId
+        && EMAILJS_CONFIG.publicKey
+        && EMAILJS_CONFIG.templateId !== 'template_xxxxx'
+        && EMAILJS_CONFIG.publicKey !== 'YOUR_PUBLIC_KEY';
+}
+
+async function sendReportEmail(reportPayload, petOwner, motivo) {
+    const { subject, message } = buildReportEmailContent(petOwner, motivo, reportPayload.petId);
+
+    if (!isEmailJsConfigured()) {
+        throw new Error('EmailJS não está configurado. Defina templateId e publicKey no app.js.');
+    }
+
+    if (typeof window.emailjs?.init === 'function') {
+        window.emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+    }
+
+    return window.emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+        subject,
+        message,
+        petOwner,
+        motivo,
+        petName: reportPayload.petName || '',
+        reporterName: reportPayload.reporterName || '',
+        reporterEmail: reportPayload.reporterEmail || '',
+        petUrl: `${window.location.origin}/pages/verificar-post.html?id=${reportPayload.petId}`
+    });
+}
+
 const STATE_CITIES = {
     "AC": [
         "Acrel\u00e2ndia",
@@ -6328,19 +6375,24 @@ async function submitReport(event) {
     try {
         const reportId = await criarDenuncia(reportPayload);
         console.log('Denúncia registrada com ID:', reportId);
-        
-        const subject = encodeURIComponent(`Denúncia registrada no post de ${petOwner}`);
-        const body = encodeURIComponent(`Uma denuncia foi registrada no post de ${petOwner}, pelo motivo de ${motivo}\n\nVerificar post: ${window.location.origin}/pages/verificar-post.html?id=${currentReportPet.id}`);
-        
-        // Fechar modal antes de abrir mailto (que será tratado pelo navegador)
+
+        const { subject, message } = buildReportEmailContent(petOwner, motivo, currentReportPet.id);
+
         closeReportModal();
-        
-        // Abrir cliente de e-mail com as informações
-        setTimeout(() => {
-            window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
-        }, 500);
-        
-        alert('Denúncia registrada com sucesso! Um e-mail de notificação será enviado.');
+
+        try {
+            await sendReportEmail(reportPayload, petOwner, motivo);
+            console.log('E-mail de denúncia enviado via EmailJS.');
+            alert('Denúncia registrada com sucesso! A notificação foi enviada automaticamente.');
+        } catch (emailError) {
+            console.warn('EmailJS falhou, usando fallback para mailto:', emailError);
+            const encodedSubject = encodeURIComponent(subject);
+            const encodedBody = encodeURIComponent(message);
+            setTimeout(() => {
+                window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${encodedSubject}&body=${encodedBody}`;
+            }, 500);
+            alert('Denúncia registrada com sucesso! Seu cliente de e-mail foi aberto para enviar a notificação.');
+        }
     } catch (error) {
         console.error('❌ Erro completo ao registrar denúncia:', error);
         console.error('Código de erro:', error?.code);
