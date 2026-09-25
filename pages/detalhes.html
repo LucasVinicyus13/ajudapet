@@ -8,31 +8,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
     <style>
+        body {
+            background: #f6f7fb;
+        }
+
         .detail-header {
             position: relative;
-            height: 350px;
+            height: 360px;
         }
 
         .detail-image {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
 
         .btn-back {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            width: 45px;
-            height: 45px;
+            background: rgba(255, 255, 255, 0.95);
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             text-decoration: none;
             color: var(--secondary);
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             box-shadow: var(--shadow);
             z-index: 10;
         }
@@ -41,13 +46,13 @@
             background: var(--bg-light);
             margin-top: -30px;
             border-radius: 30px 30px 0 0;
-            padding: 2rem 1.5rem;
+            padding: 2rem 1.5rem 8rem;
             position: relative;
             min-height: 50vh;
         }
 
         .detail-info {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .detail-status {
@@ -66,6 +71,22 @@
             margin-bottom: 1.5rem;
         }
 
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .detail-meta-item {
+            background: rgba(255, 122, 77, 0.08);
+            color: var(--secondary);
+            border-radius: 999px;
+            padding: 0.55rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
         .detail-desc-title {
             font-weight: 700;
             margin-bottom: 0.5rem;
@@ -77,13 +98,19 @@
             line-height: 1.8;
         }
 
+        .detail-actions {
+            display: grid;
+            gap: 0.9rem;
+            margin-top: 1.5rem;
+        }
+
         .footer-action {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             background: var(--white);
-            padding: 1.5rem;
+            padding: 1rem 1.5rem 1.2rem;
             box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.05);
         }
     </style>
@@ -91,43 +118,169 @@
 
 <body>
     <header class="detail-header">
-        <a href="../index.html" class="btn-back">←</a>
-        <img src="../assets/images/thor.jpg" alt="Pet"
-            class="detail-image" id="pet-image">
+        <a href="../index.html" class="btn-back" aria-label="Voltar">←</a>
+        <img src="../assets/images/placeholder.svg" alt="Pet" class="detail-image" id="pet-image">
     </header>
 
     <main class="detail-content">
         <div class="container">
             <div class="detail-info">
                 <span class="pet-status status-urgente detail-status" id="pet-status">urgente</span>
-                <h1 class="pet-name detail-name" id="pet-name">Thor</h1>
-                <p class="detail-city" id="pet-city">São Paulo, SP</p>
+                <h1 class="pet-name detail-name" id="pet-name">Carregando...</h1>
+                <p class="detail-city" id="pet-city">Carregando localização...</p>
+
+                <div class="detail-meta">
+                    <span class="detail-meta-item" id="pet-age">Idade</span>
+                    <span class="detail-meta-item" id="pet-category">Categoria</span>
+                </div>
 
                 <h3 class="detail-desc-title">História</h3>
-                <p class="detail-desc" id="pet-desc">
-                    Encontrado debilitado perto da estação. Precisa de ração e cuidados médicos urgentes para se
-                    recuperar de uma fratura na pata. É um cão muito dócil e agradecido.
-                </p>
+                <p class="detail-desc" id="pet-desc">Carregando descrição...</p>
+
+                <div class="detail-actions">
+                    <button class="btn-ajudar" id="btn-ajudar-detail" type="button">AJUDAR</button>
+                    <button class="btn-report" id="btn-denunciar-detail" type="button">Denunciar</button>
+                </div>
             </div>
         </div>
     </main>
 
     <div class="footer-action">
         <div class="container">
-            <button class="btn-ajudar" id="btn-ajudar-detail">
-                AJUDAR AGORA
-            </button>
+            <button class="btn-ajudar" id="btn-ajudar-footer" type="button">AJUDAR</button>
         </div>
     </div>
 
-    <script>
-        // Função simples para simular carregamento de dados via URL params futuramente
-        document.getElementById('btn-ajudar-detail').addEventListener('click', () => {
-            const telefone = '5511999999999';
-            const nomePet = document.getElementById('pet-name').innerText;
-            const mensagem = encodeURIComponent(`Olá! Vi o ${nomePet} no AjudaPet e gostaria de saber como posso ajudar.`);
-            window.open(`https://wa.me/${telefone}?text=${mensagem}`, '_blank');
-        });
+    <script type="module">
+        import { buscarPetPorId } from '../js/firebase-config.js';
+        import { computeAgeDaysFromPet, formatCityWithState, formatCategories, getPetDetailUrl } from '../js/pet-utils.js';
+
+        const params = new URLSearchParams(window.location.search);
+        const petId = params.get('id') || (window.location.hash ? window.location.hash.replace(/^#/, '') : '');
+        const petImage = document.getElementById('pet-image');
+
+        function normalizePetId(value) {
+            return String(value || '').trim();
+        }
+
+        function findPetByIdFromLocalState(targetId) {
+            if (!targetId) return null;
+
+            try {
+                const raw = sessionStorage.getItem('ajudapet_local_pets');
+                if (!raw) return null;
+
+                const localPets = JSON.parse(raw) || {};
+                const match = Object.keys(localPets).find((key) => String(key) === String(targetId));
+                if (match) {
+                    return { id: match, ...localPets[match] };
+                }
+
+                const values = Object.values(localPets);
+                return values.find((pet) => normalizePetId(pet?.id) === normalizePetId(targetId)
+                    || normalizePetId(pet?.petId) === normalizePetId(targetId)
+                    || normalizePetId(pet?.docId) === normalizePetId(targetId));
+            } catch (error) {
+                console.warn('Não foi possível buscar o post no cache local:', error);
+                return null;
+            }
+        }
+        const petStatus = document.getElementById('pet-status');
+        const petName = document.getElementById('pet-name');
+        const petCity = document.getElementById('pet-city');
+        const petAge = document.getElementById('pet-age');
+        const petCategory = document.getElementById('pet-category');
+        const petDesc = document.getElementById('pet-desc');
+
+        function updateStatusClasses(status) {
+            petStatus.className = `pet-status status-${status || 'urgente'} detail-status`;
+        }
+
+        function openWhatsApp(pet) {
+            const telefone = pet?.telefone || pet?.contato || '';
+            const numero = telefone.replace(/\D/g, '').slice(0, 11);
+
+            if (!numero) {
+                alert('Este post não possui um contato válido para WhatsApp.');
+                return;
+            }
+
+            const mensagem = encodeURIComponent(`Olá! Vi o ${pet?.nome || 'este animal'} no AjudaPet e gostaria de saber como posso ajudar.`);
+            window.open(`https://wa.me/${numero}?text=${mensagem}`, '_blank');
+        }
+
+        function reportPet(pet) {
+            if (!pet) return;
+            const subject = encodeURIComponent(`Denúncia do post ${pet.nome || 'animal'} - AjudaPet`);
+            const body = encodeURIComponent(
+                `Olá, gostaria de denunciar o post "${pet.nome || 'animal'}" (ID: ${pet.id}).\n\nLink do post: ${getPetDetailUrl(pet.id)}\n\nDescrição: ${pet.descricao || 'Sem descrição informada.'}`
+            );
+            window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
+        }
+
+        async function loadPet() {
+            if (!petId) {
+                petName.textContent = 'Post não encontrado';
+                petCity.textContent = 'Verifique o link compartilhado.';
+                petDesc.textContent = 'Não foi possível localizar esse animal.';
+                return;
+            }
+
+            try {
+                let pet = await buscarPetPorId(petId);
+                if (!pet) {
+                    pet = findPetByIdFromLocalState(petId);
+                }
+
+                if (!pet) {
+                    petName.textContent = 'Post não encontrado';
+                    petCity.textContent = 'Verifique o link compartilhado.';
+                    petDesc.textContent = 'Não foi possível localizar esse animal.';
+                    return;
+                }
+
+                const imageUrl = pet.imagem || '../assets/images/placeholder.svg';
+                petImage.src = imageUrl;
+                petImage.alt = pet.nome || 'Animal';
+                petImage.onerror = () => {
+                    petImage.src = '../assets/images/placeholder.svg';
+                };
+
+                petStatus.textContent = pet.status || 'urgente';
+                updateStatusClasses(pet.status || 'urgente');
+                petName.textContent = pet.nome || 'Animal';
+                petCity.textContent = formatCityWithState(pet) || 'Localização não informada';
+
+                const ageDays = computeAgeDaysFromPet(pet);
+                petAge.textContent = ageDays !== null ? `${ageDays} dias` : 'Idade não informada';
+                petCategory.textContent = formatCategories(pet) || 'Categoria não informada';
+                petDesc.textContent = pet.descricao || 'Sem descrição disponível.';
+
+                document.title = `${pet.nome || 'Detalhes do pet'} - AjudaPet`;
+
+                const actionButtons = [
+                    document.getElementById('btn-ajudar-detail'),
+                    document.getElementById('btn-ajudar-footer'),
+                    document.getElementById('btn-denunciar-detail')
+                ];
+
+                actionButtons.forEach((button) => {
+                    if (!button) return;
+                    button.dataset.petId = pet.id;
+                });
+
+                document.getElementById('btn-ajudar-detail').addEventListener('click', () => openWhatsApp(pet));
+                document.getElementById('btn-ajudar-footer').addEventListener('click', () => openWhatsApp(pet));
+                document.getElementById('btn-denunciar-detail').addEventListener('click', () => reportPet(pet));
+            } catch (error) {
+                console.error('Erro ao carregar pet em detalhes:', error);
+                petName.textContent = 'Erro ao carregar post';
+                petCity.textContent = 'Tente novamente mais tarde.';
+                petDesc.textContent = 'Não foi possível carregar os dados desse animal no momento.';
+            }
+        }
+
+        loadPet();
     </script>
 </body>
 

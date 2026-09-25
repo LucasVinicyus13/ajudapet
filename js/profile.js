@@ -1,6 +1,6 @@
 import { auth, observeAuthState, listarPets, deletarPet } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
-import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories } from './pet-utils.js';
+import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId } from './pet-utils.js';
 
 let currentUser = null;
 
@@ -129,7 +129,14 @@ function renderPostCard(pet, user) {
     const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
-        <img src="${pet.imagem || '../assets/images/placeholder.svg'}" alt="${pet.nome}">
+        <div class="pet-card-image-wrap">
+            <img src="${pet.imagem || '../assets/images/placeholder.svg'}" alt="${pet.nome}">
+            <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
+                </svg>
+            </button>
+        </div>
         <div class="pet-info">
             <div class="post-header">
                 <h3 class="pet-name">${pet.nome}</h3>
@@ -150,6 +157,16 @@ function renderPostCard(pet, user) {
             postImage.src = '../assets/images/placeholder.svg';
             postImage.alt = 'Imagem indisponível';
         }, { once: true });
+    }
+
+    const shareButton = card.querySelector('[data-pet-share-btn]');
+    if (shareButton) {
+        shareButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const petWithId = { ...pet, id: resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid };
+            await sharePet(petWithId);
+        });
     }
 
     // se for dono do post, adicionar o menu de ações no topo da área branca

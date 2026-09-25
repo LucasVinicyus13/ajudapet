@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId } from './pet-utils.js';
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');
@@ -30,4 +30,20 @@ test('shouldCompressImageDataUrl detecta imagens maiores que o limite do Firesto
   const largeDataUrl = `data:image/jpeg;base64,${'A'.repeat(1400000)}`;
   assert.equal(shouldCompressImageDataUrl(largeDataUrl), true);
   assert.equal(shouldCompressImageDataUrl('data:image/png;base64,AAAA'), false);
+});
+
+test('buildPetShareText inclui a mensagem pronta com quebra de linha antes do link', () => {
+  const text = buildPetShareText();
+  assert.match(text, /Veja só esse animal que eu encontrei no AjudaPet\. Clique no link abaixo para ver mais\./);
+  assert.match(text, /\nhttps:\/\/ajudapet-blush\.vercel\.app$/);
+});
+
+test('getPetDetailUrl gera a URL pública do post com o ID correto', () => {
+  assert.equal(getPetDetailUrl('abc123'), 'https://ajudapet-blush.vercel.app/pages/detalhes.html?id=abc123');
+  assert.equal(getPetDetailUrl({ docId: 'xyz789' }), 'https://ajudapet-blush.vercel.app/pages/detalhes.html?id=xyz789');
+});
+
+test('resolvePetId usa o identificador real do post quando o objeto vem em campos alternativos', () => {
+  assert.equal(resolvePetId({ docId: 'pet-42' }), 'pet-42');
+  assert.equal(resolvePetId({ petId: 'pet-99' }), 'pet-99');
 });

@@ -190,6 +190,96 @@ export function formatCategories(pet) {
   return getCategories(pet).join(', ');
 }
 
+export function resolvePetId(pet) {
+  if (!pet || typeof pet !== 'object') {
+    return String(pet || '').trim();
+  }
+
+  return String(
+    pet.id ?? pet.petId ?? pet.docId ?? pet.uid ?? pet._id ?? pet.key ?? pet.slug ?? ''
+  ).trim();
+}
+
+export function getPetDetailUrl(petOrId) {
+  const petId = typeof petOrId === 'object' ? resolvePetId(petOrId) : String(petOrId || '').trim();
+  if (!petId) {
+    return 'https://ajudapet-blush.vercel.app';
+  }
+
+  return `https://ajudapet-blush.vercel.app/pages/detalhes.html?id=${encodeURIComponent(petId)}`;
+}
+
+export function buildPetShareText(petOrUrl = 'https://ajudapet-blush.vercel.app') {
+  const url = typeof petOrUrl === 'string' && petOrUrl.includes('https://')
+    ? petOrUrl
+    : getPetDetailUrl(petOrUrl);
+
+  return `Veja só esse animal que eu encontrei no AjudaPet. Clique no link abaixo para ver mais.\n${url}`;
+}
+
+export async function sharePet(pet) {
+  if (!pet) return false;
+
+  const petId = resolvePetId(pet);
+  if (!petId) {
+    console.warn('sharePet chamado sem ID do pet:', pet);
+    alert('Não foi possível identificar este post para compartilhar.');
+    return false;
+  }
+
+  const shareUrl = getPetDetailUrl(petId);
+  const shareText = buildPetShareText(shareUrl);
+
+  try {
+    if (navigator.share) {
+      const shareData = {
+        title: pet.nome || 'AjudaPet',
+        text: shareText,
+        url: shareUrl
+      };
+
+      if (pet.imagem) {
+        try {
+          const response = await fetch(pet.imagem);
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], `${(pet.nome || 'pet').replace(/\s+/g, '-').toLowerCase() || 'pet'}.jpg`, {
+              type: blob.type || 'image/jpeg'
+            });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              shareData.files = [file];
+            }
+          }
+        } catch (error) {
+          console.warn('Não foi possível anexar a imagem do post para compartilhamento:', error);
+        }
+      }
+
+      await navigator.share(shareData);
+      return true;
+    }
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(shareText);
+      alert('Mensagem pronta copiada para a área de transferência.');
+      return true;
+    }
+
+    const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    window.open(whatsappShareUrl, '_blank');
+    return true;
+  } catch (error) {
+    if (error && error.name === 'AbortError') {
+      return false;
+    }
+
+    console.error('Erro ao compartilhar post:', error);
+    alert('Não foi possível compartilhar este post no momento.');
+    return false;
+  }
+}
+
 export function formatCityWithState(pet) {
   if (!pet) return '';
   const raw = pet.cidade || '';

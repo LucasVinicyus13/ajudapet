@@ -4,7 +4,7 @@
  */
 
 import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
-import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState } from './pet-utils.js';
+import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId } from './pet-utils.js';
 
 const CATEGORIES = [
     // Porte / Tamanho
@@ -6200,7 +6200,14 @@ function renderPetCard(pet) {
 
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
-        <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
+        <div class="pet-card-image-wrap">
+            <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
+            <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
+                </svg>
+            </button>
+        </div>
         <div class="pet-info">
             <p class="post-date">${pubDate || 'Data não disponível'}</p>
             <p class="pet-age">${ageText}</p>
@@ -6233,8 +6240,18 @@ function renderPetCard(pet) {
         });
     }
 
+    const shareButton = card.querySelector('[data-pet-share-btn]');
+    if (shareButton) {
+        shareButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const petWithId = { ...pet, id: resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid };
+            await sharePet(petWithId);
+        });
+    }
+
     card.addEventListener('click', (e) => {
-        if (!e.target.closest('[data-pet-help-btn]') && !e.target.closest('[data-pet-report-btn]')) {
+        if (!e.target.closest('[data-pet-help-btn]') && !e.target.closest('[data-pet-report-btn]') && !e.target.closest('[data-pet-share-btn]')) {
             abrirDetalhes(pet);
         }
     });
