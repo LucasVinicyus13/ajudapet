@@ -6372,7 +6372,7 @@ function renderPetCard(pet) {
             event.stopPropagation();
 
             if (!auth.currentUser?.uid) {
-                alert('Você precisa estar logado para curtir este post.');
+                alert('Você precisa fazer login para curtir este post.');
                 return;
             }
 
@@ -6488,7 +6488,7 @@ function openModal(pet) {
             event.stopPropagation();
 
             if (!auth.currentUser?.uid) {
-                alert('Você precisa estar logado para curtir este post.');
+                alert('Você precisa fazer login para curtir este post.');
                 return;
             }
 

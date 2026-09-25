@@ -35,6 +35,14 @@ function getLoginPagePath() {
     return window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
 }
 
+function requireLogin(message) {
+    if (!auth.currentUser) {
+        alert(message);
+        return false;
+    }
+    return true;
+}
+
 function getFollowingUsers() {
     try {
         return JSON.parse(localStorage.getItem(FOLLOWING_KEY) || '[]');
@@ -248,8 +256,7 @@ function renderPetCard(pet, authorName, authorAvatarUrl) {
         likeButton.addEventListener('click', async (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (!auth.currentUser?.uid) {
-                alert('Você precisa estar logado para curtir este post.');
+            if (!requireLogin('Você precisa fazer login para curtir este post.')) {
                 return;
             }
             try {
@@ -376,6 +383,10 @@ async function initUserProfile() {
         updateFollowButtonState(uid);
         if (followButton) {
             followButton.onclick = () => {
+                if (!requireLogin('Você precisa fazer login para seguir este usuário.')) {
+                    return;
+                }
+
                 const current = getFollowingUsers();
                 const filtered = current.filter((item) => item !== uid);
                 if (!current.includes(uid)) {
