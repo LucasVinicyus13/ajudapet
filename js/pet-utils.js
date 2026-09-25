@@ -217,6 +217,13 @@ export function buildPetShareText(petOrUrl = 'https://ajudapet-blush.vercel.app'
   return `Veja só esse animal que eu encontrei no AjudaPet. Clique no link abaixo para ver mais.\n${url}`;
 }
 
+export function buildReportEmailContent(petOwner, motivo, petId, baseOrigin = 'https://ajudapet-blush.vercel.app') {
+  const subject = `Denúncia registrada no post de ${petOwner}`;
+  const message = `Uma denuncia foi registrada no post de ${petOwner}, pelo motivo de ${motivo}\n\nVerificar post: ${baseOrigin}/pages/verificar-post.html?id=${petId}`;
+
+  return { subject, message };
+}
+
 export async function sharePet(pet) {
   if (!pet) return false;
 
@@ -256,8 +263,22 @@ export async function sharePet(pet) {
         }
       }
 
-      await navigator.share(shareData);
-      return true;
+      try {
+        await navigator.share(shareData);
+        return true;
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          return false;
+        }
+
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(shareText);
+          alert('O Instagram pode ignorar o texto ao compartilhar uma imagem. A mensagem e o link foram copiados para você colar manualmente.');
+          return true;
+        }
+
+        throw error;
+      }
     }
 
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {

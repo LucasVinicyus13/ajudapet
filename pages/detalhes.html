@@ -151,9 +151,16 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="module">
-        import { buscarPetPorId } from '../js/firebase-config.js';
-        import { computeAgeDaysFromPet, formatCityWithState, formatCategories, getPetDetailUrl } from '../js/pet-utils.js';
+        import { auth, buscarPetPorId, criarDenuncia } from '../js/firebase-config.js';
+        import { buildReportEmailContent, computeAgeDaysFromPet, formatCityWithState, formatCategories, getPetDetailUrl } from '../js/pet-utils.js';
+
+        const EMAILJS_CONFIG = {
+            serviceId: 'service_gy5u2oa',
+            templateId: 'template_mfg3oh5',
+            publicKey: '9QiT5PgUyYcIT_J7V'
+        };
 
         const params = new URLSearchParams(window.location.search);
         const petId = params.get('id') || (window.location.hash ? window.location.hash.replace(/^#/, '') : '');
@@ -209,13 +216,78 @@
             window.open(`https://wa.me/${numero}?text=${mensagem}`, '_blank');
         }
 
-        function reportPet(pet) {
+        function isEmailJsConfigured() {
+            return typeof window.emailjs !== 'undefined'
+                && EMAILJS_CONFIG.serviceId
+                && EMAILJS_CONFIG.templateId
+                && EMAILJS_CONFIG.publicKey
+                && EMAILJS_CONFIG.templateId !== 'template_xxxxx'
+                && EMAILJS_CONFIG.publicKey !== 'YOUR_PUBLIC_KEY';
+        }
+
+        async function sendDetailReportEmail(reportPayload, petOwner, motivo) {
+            const { subject, message } = buildReportEmailContent(petOwner, motivo, reportPayload.petId, window.location.origin || 'https://ajudapet-blush.vercel.app');
+
+            if (!isEmailJsConfigured()) {
+                throw new Error('EmailJS não está configurado.');
+            }
+
+            if (typeof window.emailjs?.init === 'function') {
+                window.emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+            }
+
+            return window.emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+                subject,
+                message,
+                petOwner,
+                motivo,
+                petName: reportPayload.petName || '',
+                reporterName: reportPayload.reporterName || '',
+                reporterEmail: reportPayload.reporterEmail || '',
+                petUrl: `${window.location.origin}/pages/verificar-post.html?id=${reportPayload.petId}`
+            });
+        }
+
+        async function reportPet(pet) {
             if (!pet) return;
-            const subject = encodeURIComponent(`Denúncia do post ${pet.nome || 'animal'} - AjudaPet`);
-            const body = encodeURIComponent(
-                `Olá, gostaria de denunciar o post "${pet.nome || 'animal'}" (ID: ${pet.id}).\n\nLink do post: ${getPetDetailUrl(pet.id)}\n\nDescrição: ${pet.descricao || 'Sem descrição informada.'}`
-            );
-            window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${subject}&body=${body}`;
+
+            if (!auth.currentUser) {
+                alert('Você precisa estar logado para denunciar um post.');
+                return;
+            }
+
+            const motivo = 'Denúncia direta da página de detalhes';
+            const reporterName = auth.currentUser.displayName || auth.currentUser.email || 'Usuário sem nome';
+            const reporterEmail = auth.currentUser.email || '';
+            const petOwner = pet.ownerEmail || pet.ownerUid || 'usuário';
+            const reportPayload = {
+                petId: pet.id,
+                petName: pet.nome,
+                reporterName,
+                reporterEmail,
+                motivo,
+                ownerIdentifier: petOwner
+            };
+
+            try {
+                await criarDenuncia(reportPayload);
+
+                const { subject, message } = buildReportEmailContent(petOwner, motivo, pet.id, window.location.origin || 'https://ajudapet-blush.vercel.app');
+
+                try {
+                    await sendDetailReportEmail(reportPayload, petOwner, motivo);
+                    alert('Denúncia registrada com sucesso! A notificação foi enviada automaticamente.');
+                } catch (emailError) {
+                    console.warn('EmailJS falhou para denúncia da página de detalhes:', emailError);
+                    const encodedSubject = encodeURIComponent(subject);
+                    const encodedBody = encodeURIComponent(message);
+                    window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${encodedSubject}&body=${encodedBody}`;
+                    alert('Denúncia registrada com sucesso! Seu cliente de e-mail foi aberto para enviar a notificação.');
+                }
+            } catch (error) {
+                console.error('Erro ao registrar denúncia na página de detalhes:', error);
+                alert('Não foi possível registrar a denúncia. Tente novamente.');
+            }
         }
 
         async function loadPet() {

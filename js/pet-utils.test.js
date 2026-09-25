@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent } from './pet-utils.js';
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');
@@ -46,4 +46,10 @@ test('getPetDetailUrl gera a URL pública do post com o ID correto', () => {
 test('resolvePetId usa o identificador real do post quando o objeto vem em campos alternativos', () => {
   assert.equal(resolvePetId({ docId: 'pet-42' }), 'pet-42');
   assert.equal(resolvePetId({ petId: 'pet-99' }), 'pet-99');
+});
+
+test('buildReportEmailContent monta a mensagem de denúncia com o link de verificação do post', () => {
+  const { subject, message } = buildReportEmailContent('dono@teste.com', 'Outro', 'abc-123', 'https://ajudapet-blush.vercel.app');
+  assert.equal(subject, 'Denúncia registrada no post de dono@teste.com');
+  assert.match(message, /pages\/verificar-post\.html\?id=abc-123/);
 });
