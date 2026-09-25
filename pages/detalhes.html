@@ -151,6 +151,33 @@
         </div>
     </div>
 
+    <div id="detail-report-modal" class="report-modal" aria-hidden="true">
+        <div class="report-modal-card">
+            <div class="report-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">Denúncia</p>
+                    <h2 class="filter-modal-title">Denunciar post</h2>
+                </div>
+                <button type="button" class="filter-close" id="detail-report-close-button" aria-label="Fechar denúncia">×</button>
+            </div>
+            <p class="report-copy">Você está denunciando o post de <strong id="detail-report-pet-name">este animal</strong>.</p>
+            <form id="detail-report-form" class="report-form">
+                <label class="report-option"><input type="radio" name="detail-report-reason" value="Pornografia"> Pornografia</label>
+                <label class="report-option"><input type="radio" name="detail-report-reason" value="Palavrões"> Palavrões</label>
+                <label class="report-option"><input type="radio" name="detail-report-reason" value="Não é um animal"> Não é um animal</label>
+                <label class="report-option"><input type="radio" name="detail-report-reason" value="Outro"> Outro</label>
+                <label class="report-field report-field-hidden">
+                    <span>Descreva o motivo</span>
+                    <textarea id="detail-report-other-reason" maxlength="150" rows="3" placeholder="Máximo de 150 caracteres"></textarea>
+                </label>
+                <div class="filter-actions">
+                    <button type="button" class="btn-filter-secondary" id="detail-report-cancel-button">Cancelar</button>
+                    <button type="submit" class="btn-filter-primary">Enviar denúncia</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="module">
         import { auth, buscarPetPorId, criarDenuncia } from '../js/firebase-config.js';
@@ -248,7 +275,9 @@
             });
         }
 
-        async function reportPet(pet) {
+        async function submitDetailReport(event, pet) {
+            event.preventDefault();
+
             if (!pet) return;
 
             if (!auth.currentUser) {
@@ -256,7 +285,16 @@
                 return;
             }
 
-            const motivo = 'Denúncia direta da página de detalhes';
+            const selectedReasonInput = document.querySelector('input[name="detail-report-reason"]:checked');
+            const selectedReason = selectedReasonInput ? selectedReasonInput.value : '';
+            const customReason = document.getElementById('detail-report-other-reason') ? document.getElementById('detail-report-other-reason').value.trim() : '';
+            const motivo = selectedReason === 'Outro' ? customReason : selectedReason;
+
+            if (!motivo) {
+                alert('Selecione um motivo e descreva o detalhe, quando necessário.');
+                return;
+            }
+
             const reporterName = auth.currentUser.displayName || auth.currentUser.email || 'Usuário sem nome';
             const reporterEmail = auth.currentUser.email || '';
             const petOwner = pet.ownerEmail || pet.ownerUid || 'usuário';
@@ -276,18 +314,57 @@
 
                 try {
                     await sendDetailReportEmail(reportPayload, petOwner, motivo);
+                    document.getElementById('detail-report-modal').classList.remove('visible');
+                    document.getElementById('detail-report-modal').setAttribute('aria-hidden', 'true');
                     alert('Denúncia registrada com sucesso! A notificação foi enviada automaticamente.');
                 } catch (emailError) {
                     console.warn('EmailJS falhou para denúncia da página de detalhes:', emailError);
                     const encodedSubject = encodeURIComponent(subject);
                     const encodedBody = encodeURIComponent(message);
                     window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${encodedSubject}&body=${encodedBody}`;
+                    document.getElementById('detail-report-modal').classList.remove('visible');
+                    document.getElementById('detail-report-modal').setAttribute('aria-hidden', 'true');
                     alert('Denúncia registrada com sucesso! Seu cliente de e-mail foi aberto para enviar a notificação.');
                 }
             } catch (error) {
                 console.error('Erro ao registrar denúncia na página de detalhes:', error);
                 alert('Não foi possível registrar a denúncia. Tente novamente.');
             }
+        }
+
+        function openDetailReportModal(pet) {
+            const modal = document.getElementById('detail-report-modal');
+            if (!modal || !pet) return;
+
+            const petName = document.getElementById('detail-report-pet-name');
+            const otherReason = document.getElementById('detail-report-other-reason');
+            const reasonInputs = document.querySelectorAll('input[name="detail-report-reason"]');
+
+            if (petName) petName.textContent = pet.nome || 'este animal';
+            if (otherReason) {
+                otherReason.value = '';
+                otherReason.parentElement.classList.remove('visible');
+            }
+
+            reasonInputs.forEach((input) => {
+                input.checked = false;
+                input.onchange = () => {
+                    if (otherReason) {
+                        otherReason.parentElement.classList.toggle('visible', input.value === 'Outro');
+                    }
+                };
+            });
+
+            modal.classList.add('visible');
+            modal.setAttribute('aria-hidden', 'false');
+            modal.dataset.petId = pet.id;
+        }
+
+        function closeDetailReportModal() {
+            const modal = document.getElementById('detail-report-modal');
+            if (!modal) return;
+            modal.classList.remove('visible');
+            modal.setAttribute('aria-hidden', 'true');
         }
 
         async function loadPet() {
@@ -330,7 +407,7 @@
 
                 document.title = `${pet.nome || 'Detalhes do pet'} - AjudaPet`;
 
-                const actionButtons = [
+                        const actionButtons = [
                     document.getElementById('btn-ajudar-detail'),
                     document.getElementById('btn-ajudar-footer'),
                     document.getElementById('btn-denunciar-detail')
@@ -343,7 +420,22 @@
 
                 document.getElementById('btn-ajudar-detail').addEventListener('click', () => openWhatsApp(pet));
                 document.getElementById('btn-ajudar-footer').addEventListener('click', () => openWhatsApp(pet));
-                document.getElementById('btn-denunciar-detail').addEventListener('click', () => reportPet(pet));
+                document.getElementById('btn-denunciar-detail').addEventListener('click', () => openDetailReportModal(pet));
+
+                const detailReportForm = document.getElementById('detail-report-form');
+                if (detailReportForm) {
+                    detailReportForm.addEventListener('submit', (event) => submitDetailReport(event, pet));
+                }
+
+                const detailReportCloseButton = document.getElementById('detail-report-close-button');
+                if (detailReportCloseButton) {
+                    detailReportCloseButton.addEventListener('click', closeDetailReportModal);
+                }
+
+                const detailReportCancelButton = document.getElementById('detail-report-cancel-button');
+                if (detailReportCancelButton) {
+                    detailReportCancelButton.addEventListener('click', closeDetailReportModal);
+                }
             } catch (error) {
                 console.error('Erro ao carregar pet em detalhes:', error);
                 petName.textContent = 'Erro ao carregar post';
