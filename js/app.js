@@ -6229,11 +6229,18 @@ function isPetAdopted(pet) {
     return String(pet?.status || '').trim().toLowerCase() === 'adotado';
 }
 
+function openUserProfile(uid) {
+    if (!uid) return;
+    const profilePage = window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html';
+    window.location.href = `${profilePage}?uid=${encodeURIComponent(uid)}`;
+}
+
 function renderPetCard(pet) {
     const card = document.createElement('div');
     const categorias = formatCategories(pet);
     const petIsAdopted = isPetAdopted(pet);
     const petId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
+    const ownerUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
     card.className = 'pet-card';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
@@ -6245,10 +6252,10 @@ function renderPetCard(pet) {
             <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
         </div>
         <div class="pet-info">
-            <div class="pet-author" data-pet-author>
+            <a class="pet-author pet-author-link" data-pet-author data-user-profile-link data-user-id="${ownerUid || ''}" href="${ownerUid ? (window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html') + '?uid=' + encodeURIComponent(ownerUid) : '#'}" aria-label="Ver perfil do usuário">
                 <img class="pet-author-avatar" data-pet-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
                 <span class="pet-author-name" data-pet-author-name>Usuário</span>
-            </div>
+            </a>
             <div class="pet-info-actions">
                 <div class="pet-like-button-group">
                     <button type="button" class="pet-like-btn" data-pet-like-btn aria-label="Curtir post" aria-pressed="false" title="Curtir post">
@@ -6289,11 +6296,27 @@ function renderPetCard(pet) {
 
     const authorAvatar = card.querySelector('[data-pet-author-avatar]');
     const authorName = card.querySelector('[data-pet-author-name]');
+    const authorLink = card.querySelector('[data-user-profile-link]');
     if (authorAvatar && authorName) {
         void getPetAuthorInfo(pet).then(({ name, avatar }) => {
             authorAvatar.src = avatar;
             authorName.textContent = name;
+            if (authorLink && pet?.ownerUid) {
+                authorLink.href = `${window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html'}?uid=${encodeURIComponent(pet.ownerUid)}`;
+                authorLink.dataset.userId = pet.ownerUid;
+            }
         });
+    }
+
+    if (authorLink) {
+        authorLink.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const userId = authorLink.dataset.userId || pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid;
+            if (userId) {
+                openUserProfile(userId);
+            }
+        };
     }
 
     const likeButton = card.querySelector('[data-pet-like-btn]');
@@ -6353,6 +6376,7 @@ function renderPetCard(pet) {
     }
 
     card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-user-profile-link]')) return;
         if (!e.target.closest('[data-pet-help-btn]') && !e.target.closest('[data-pet-report-btn]') && !e.target.closest('[data-pet-share-btn]')) {
             abrirDetalhes(pet);
         }
@@ -6376,11 +6400,28 @@ function openModal(pet) {
 
     const modalAuthorAvatar = document.querySelector('[data-modal-author-avatar]');
     const modalAuthorName = document.querySelector('[data-modal-author-name]');
+    const modalAuthorLink = document.querySelector('[data-modal-author-link]');
     if (modalAuthorAvatar && modalAuthorName) {
         void getPetAuthorInfo(pet).then(({ name, avatar }) => {
             modalAuthorAvatar.src = avatar;
             modalAuthorName.textContent = name;
+            const authorUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
+            if (modalAuthorLink && authorUid) {
+                modalAuthorLink.href = `${window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html'}?uid=${encodeURIComponent(authorUid)}`;
+                modalAuthorLink.dataset.userId = authorUid;
+            }
         });
+    }
+
+    if (modalAuthorLink) {
+        modalAuthorLink.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const userId = modalAuthorLink.dataset.userId || pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid;
+            if (userId) {
+                openUserProfile(userId);
+            }
+        };
     }
 
     modalName.textContent = pet.nome;

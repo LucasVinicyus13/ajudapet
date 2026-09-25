@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do usuário - AjudaPet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-light">
+    <header class="app-header">
+        <div class="container">
+            <a href="../index.html" id="app-logo" aria-label="Ir para a página inicial do AjudaPet" title="Ir para a página inicial do AjudaPet">Ajuda<span>Pet</span></a>
+            <nav id="auth-menu">
+                <a href="login.html" class="btn-login">Entrar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container user-profile-page">
+        <section class="user-profile-card">
+            <div class="user-profile-header">
+                <img id="other-user-avatar" class="user-profile-avatar" src="../assets/images/usuario.png" alt="Foto de perfil do usuário">
+                <div class="user-profile-meta">
+                    <h2 id="other-user-name" class="user-profile-name">Usuário</h2>
+                </div>
+            </div>
+
+            <div class="user-profile-actions">
+                <button id="follow-button" class="follow-btn" type="button" aria-label="Seguir usuário">
+                    <span>Seguir</span>
+                </button>
+            </div>
+
+            <div class="profile-field profile-posts-title">
+                <span>Posts de usuário</span>
+            </div>
+
+            <div id="user-posts" class="pet-grid user-posts"></div>
+        </section>
+    </main>
+
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/user-profile.js"></script>
+</body>
+</html>
