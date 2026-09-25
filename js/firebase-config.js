@@ -20,7 +20,9 @@ import {
     doc,
     deleteDoc,
     serverTimestamp,
-    setDoc
+    setDoc,
+    runTransaction,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
     getAuth,
@@ -438,4 +440,92 @@ export async function buscarPetPorId(id) {
         console.error('Erro ao buscar pet por ID:', error);
         throw error;
     }
+}
+
+export async function togglePetLike(postId) {
+    if (!postId) {
+        throw new Error('ID do post é obrigatório para curtir.');
+    }
+
+    if (!auth.currentUser?.uid) {
+        throw new Error('Você precisa estar autenticado para curtir.');
+    }
+
+    const userId = auth.currentUser.uid;
+    const petRef = doc(db, 'pets', postId);
+    const likeRef = doc(db, 'pets', postId, 'likes', userId);
+
+    return runTransaction(db, async (transaction) => {
+        const petSnapshot = await transaction.get(petRef);
+        const likeSnapshot = await transaction.get(likeRef);
+
+        const currentCount = Number(petSnapshot.data()?.likesCount || 0);
+        const alreadyLiked = likeSnapshot.exists();
+
+        if (alreadyLiked) {
+            transaction.delete(likeRef);
+            transaction.update(petRef, {
+                likesCount: Math.max(0, currentCount - 1)
+            });
+            return { liked: false, count: Math.max(0, currentCount - 1) };
+        }
+
+        transaction.set(likeRef, {
+            userId,
+            createdAt: serverTimestamp()
+        });
+
+        transaction.update(petRef, {
+            likesCount: currentCount + 1
+        });
+
+        return { liked: true, count: currentCount + 1 };
+    });
+}
+
+export async function getPetLikeState(postId, userId = auth.currentUser?.uid) {
+    if (!postId) {
+        return { liked: false, count: 0 };
+    }
+
+    try {
+        const likesRef = collection(db, 'pets', postId, 'likes');
+        const likesSnapshot = await getDocs(likesRef);
+        const count = likesSnapshot.size;
+
+        if (!userId) {
+            return { liked: false, count };
+        }
+
+        const likeRef = doc(db, 'pets', postId, 'likes', userId);
+        const likeSnapshot = await getDoc(likeRef);
+
+        return {
+            liked: likeSnapshot.exists(),
+            count
+        };
+    } catch (error) {
+        console.error('Erro ao obter estado de curtidas:', error);
+        return { liked: false, count: 0 };
+    }
+}
+
+export function subscribeToPetLikes(postId, callback) {
+    if (!postId) {
+        callback({ liked: false, count: 0 });
+        return () => {};
+    }
+
+    const likesRef = collection(db, 'pets', postId, 'likes');
+
+    return onSnapshot(likesRef, (snapshot) => {
+        const currentUserId = auth.currentUser?.uid || null;
+        const count = snapshot.size;
+        const liked = currentUserId ? snapshot.docs.some((docSnap) => docSnap.id === currentUserId) : false;
+
+        callback({ liked, count });
+    }, (error) => {
+        console.error('Erro em onSnapshot de curtidas:', error);
+        callback({ liked: false, count: 0 });
+    });
 }

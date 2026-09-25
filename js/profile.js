@@ -1,4 +1,4 @@
-import { auth, observeAuthState, listarPets, deletarPet } from './firebase-config.js';
+import { auth, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId } from './pet-utils.js';
 
@@ -127,17 +127,34 @@ function renderPostCard(pet, user) {
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
     const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
+    const ownerUid = pet.ownerUid || user?.uid || pet.userId || null;
+    const authorName = pet.ownerName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Usuário');
+
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
         <div class="pet-card-image-wrap">
             <img src="${pet.imagem || '../assets/images/placeholder.svg'}" alt="${pet.nome}">
-            <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
-                </svg>
-            </button>
         </div>
         <div class="pet-info">
+            <div class="pet-author">
+                <img class="pet-author-avatar" data-profile-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
+                <span class="pet-author-name" data-profile-author-name>${authorName}</span>
+            </div>
+            <div class="pet-info-actions">
+                <div class="pet-like-button-group">
+                    <button type="button" class="pet-like-btn" data-pet-like-btn aria-label="Curtir post" aria-pressed="false" title="Curtir post">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6.12 6.12 0 0 1 15.5 4 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z"/>
+                        </svg>
+                    </button>
+                    <span class="pet-like-count" data-pet-like-count>0</span>
+                </div>
+                <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
+                    </svg>
+                </button>
+            </div>
             <div class="post-header">
                 <h3 class="pet-name">${pet.nome}</h3>
             </div>
@@ -145,9 +162,6 @@ function renderPostCard(pet, user) {
             <p class="pet-age">${ageText}</p>
             <p class="pet-city">${formatCityWithState(pet)}</p>
             ${categorias ? `<p class="pet-category">${categorias}</p>` : ''}
-            <div class="pet-card-actions">
-                <button type="button" class="btn-ajudar btn-ajudar-inline" onclick="openWhatsapp('${pet.telefone}', '${pet.nome}')">AJUDAR</button>
-            </div>
         </div>
     `;
 
@@ -159,12 +173,59 @@ function renderPostCard(pet, user) {
         }, { once: true });
     }
 
+    const authorAvatar = card.querySelector('[data-profile-author-avatar]');
+    const authorNameLabel = card.querySelector('[data-profile-author-name]');
+    if (ownerUid) {
+        getProfileImagePath(ownerUid).then((avatarUrl) => {
+            if (authorAvatar) authorAvatar.src = avatarUrl;
+        }).catch(() => {
+            if (authorAvatar) authorAvatar.src = getDefaultProfileImagePath();
+        });
+    }
+    if (authorNameLabel && authorName) {
+        authorNameLabel.textContent = authorName;
+    }
+
+    const likeButton = card.querySelector('[data-pet-like-btn]');
+    const likeCountLabel = card.querySelector('[data-pet-like-count]');
+    const petLikeId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
+
+    const syncLikeState = ({ liked, count }) => {
+        if (!likeButton || !likeCountLabel) return;
+        const normalizedCount = Number.isFinite(count) ? count : 0;
+        likeButton.classList.toggle('is-liked', Boolean(liked));
+        likeButton.setAttribute('aria-pressed', String(Boolean(liked)));
+        likeButton.title = liked ? 'Remover curtida' : 'Curtir post';
+        likeCountLabel.textContent = String(normalizedCount);
+    };
+
+    if (likeButton && likeCountLabel) {
+        getPetLikeState(petLikeId, auth.currentUser?.uid).then(syncLikeState).catch(() => syncLikeState({ liked: false, count: 0 }));
+        subscribeToPetLikes(petLikeId, syncLikeState);
+
+        likeButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!auth.currentUser?.uid) {
+                alert('Você precisa estar logado para curtir este post.');
+                return;
+            }
+            try {
+                const result = await togglePetLike(petLikeId);
+                syncLikeState(result);
+            } catch (error) {
+                console.error('Erro ao curtir o post no perfil:', error);
+                alert('Não foi possível atualizar a curtida. Tente novamente.');
+            }
+        });
+    }
+
     const shareButton = card.querySelector('[data-pet-share-btn]');
     if (shareButton) {
         shareButton.addEventListener('click', async (event) => {
             event.preventDefault();
             event.stopPropagation();
-            const petWithId = { ...pet, id: resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid };
+            const petWithId = { ...pet, id: petLikeId };
             await sharePet(petWithId);
         });
     }

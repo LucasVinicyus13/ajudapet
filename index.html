@@ -65,7 +65,28 @@
                 </div>
             </div>
             <div class="modal-content">
-                <h2 id="modal-name" class="pet-name">Nome do animal</h2>
+                <div class="modal-author" data-modal-author>
+                    <img class="pet-author-avatar" data-modal-author-avatar src="./assets/images/usuario.png" alt="Foto do usuário" loading="lazy">
+                    <span class="pet-author-name" data-modal-author-name>Usuário</span>
+                </div>
+                <div class="modal-heading-row">
+                    <h2 id="modal-name" class="pet-name">Nome do animal</h2>
+                    <div class="modal-action-row">
+                        <div class="modal-like-wrap">
+                            <button type="button" class="modal-like-btn" id="modal-like-btn" aria-label="Curtir post" aria-pressed="false" title="Curtir post">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6.12 6.12 0 0 1 15.5 4 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z"/>
+                                </svg>
+                            </button>
+                            <span class="modal-like-count" id="modal-like-count">0</span>
+                        </div>
+                        <button type="button" class="modal-share-btn" id="modal-share-btn" aria-label="Compartilhar post" title="Compartilhar">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
                 <p id="modal-city" class="pet-city">Cidade</p>
                 <p id="modal-category" class="pet-category">Categoria</p>
                 <h3 class="detail-desc-title">História</h3>

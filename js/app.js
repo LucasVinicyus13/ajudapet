@@ -3,8 +3,9 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet } from './firebase-config.js';
+import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db } from './firebase-config.js';
 import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId } from './pet-utils.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CATEGORIES = [
     // Porte / Tamanho
@@ -5804,6 +5805,9 @@ let modalName = null;
 let modalCity = null;
 let modalDesc = null;
 let modalHelpBtn = null;
+let modalLikeButton = null;
+let modalLikeCount = null;
+let modalShareButton = null;
 let selectedModalPet = null;
 
 let categorySelect = null;
@@ -5834,6 +5838,7 @@ let reportOtherReasonInput = null;
 let currentReportPet = null;
 let loadingMoreIndicator = null;
 let endOfFeedMessage = null;
+let modalLikeUnsubscribe = null;
 
 function attachImageFallback(imageElement) {
     if (!imageElement) return;
@@ -6042,6 +6047,9 @@ async function initApp() {
     modalCity = document.getElementById('modal-city');
     modalDesc = document.getElementById('modal-desc');
     modalHelpBtn = document.getElementById('modal-help-btn');
+    modalLikeButton = document.getElementById('modal-like-btn');
+    modalLikeCount = document.getElementById('modal-like-count');
+    modalShareButton = document.getElementById('modal-share-btn');
     reportModal = document.getElementById('report-modal');
     reportReasonInputs = Array.from(document.querySelectorAll('input[name="report-reason"]'));
     reportOtherReasonInput = document.getElementById('report-other-reason');
@@ -6190,6 +6198,33 @@ function renderPets(pets, emptyMessage = 'Nenhum animal disponível no momento.'
     });
 }
 
+function getDefaultProfileImagePath() {
+    return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
+}
+
+async function getPetAuthorInfo(pet) {
+    const ownerUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
+    const fallbackName = pet?.ownerName || pet?.userName || (pet?.ownerEmail ? pet.ownerEmail.split('@')[0] : 'Usuário');
+    const fallbackAvatar = getDefaultProfileImagePath();
+
+    if (!ownerUid) {
+        return { name: fallbackName, avatar: fallbackAvatar };
+    }
+
+    try {
+        const profileRef = doc(db, 'users', ownerUid);
+        const profileSnap = await getDoc(profileRef);
+        const profileData = profileSnap.exists() ? profileSnap.data() : {};
+        const name = profileData.displayName || profileData.name || fallbackName;
+        const avatar = profileData.avatarUrl || fallbackAvatar;
+
+        return { name, avatar };
+    } catch (error) {
+        console.warn('Não foi possível carregar o autor do post:', error);
+        return { name: fallbackName, avatar: fallbackAvatar };
+    }
+}
+
 function isPetAdopted(pet) {
     return String(pet?.status || '').trim().toLowerCase() === 'adotado';
 }
@@ -6198,6 +6233,7 @@ function renderPetCard(pet) {
     const card = document.createElement('div');
     const categorias = formatCategories(pet);
     const petIsAdopted = isPetAdopted(pet);
+    const petId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
     card.className = 'pet-card';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
@@ -6209,18 +6245,30 @@ function renderPetCard(pet) {
             <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
         </div>
         <div class="pet-info">
-            <p class="post-date">${pubDate || 'Data não disponível'}</p>
-            <p class="pet-age">${ageText}</p>
-            <p class="pet-city">${formatCityWithState(pet)}</p>
-            <h3 class="pet-name">${pet.nome}</h3>
-            <p class="pet-category">${categorias}</p>
+            <div class="pet-author" data-pet-author>
+                <img class="pet-author-avatar" data-pet-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
+                <span class="pet-author-name" data-pet-author-name>Usuário</span>
+            </div>
             <div class="pet-info-actions">
+                <div class="pet-like-button-group">
+                    <button type="button" class="pet-like-btn" data-pet-like-btn aria-label="Curtir post" aria-pressed="false" title="Curtir post">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6.12 6.12 0 0 1 15.5 4 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z"/>
+                        </svg>
+                    </button>
+                    <span class="pet-like-count" data-pet-like-count>0</span>
+                </div>
                 <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
                     </svg>
                 </button>
             </div>
+            <p class="post-date">${pubDate || 'Data não disponível'}</p>
+            <p class="pet-age">${ageText}</p>
+            <p class="pet-city">${formatCityWithState(pet)}</p>
+            <h3 class="pet-name">${pet.nome}</h3>
+            <p class="pet-category">${categorias}</p>
             <div class="pet-card-actions">
                 ${petIsAdopted ? '' : '<button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>'}
                 <button type="button" class="btn-report" data-pet-report-btn>Denunciar</button>
@@ -6237,6 +6285,53 @@ function renderPetCard(pet) {
             event.stopPropagation();
             window.ajudarPet(getWhatsAppPhone(pet), pet.nome);
         });
+    }
+
+    const authorAvatar = card.querySelector('[data-pet-author-avatar]');
+    const authorName = card.querySelector('[data-pet-author-name]');
+    if (authorAvatar && authorName) {
+        void getPetAuthorInfo(pet).then(({ name, avatar }) => {
+            authorAvatar.src = avatar;
+            authorName.textContent = name;
+        });
+    }
+
+    const likeButton = card.querySelector('[data-pet-like-btn]');
+    const likeCountLabel = card.querySelector('[data-pet-like-count]');
+    const petLikeId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
+
+    const syncLikeButtonState = ({ liked, count }) => {
+        if (!likeButton || !likeCountLabel) return;
+        const normalizedCount = Number.isFinite(count) ? count : 0;
+        likeButton.classList.toggle('is-liked', Boolean(liked));
+        likeButton.setAttribute('aria-pressed', String(Boolean(liked)));
+        likeButton.title = liked ? 'Remover curtida' : 'Curtir post';
+        likeCountLabel.textContent = String(normalizedCount);
+    };
+
+    if (likeButton && likeCountLabel) {
+        getPetLikeState(petLikeId, auth.currentUser?.uid).then(syncLikeButtonState).catch(() => syncLikeButtonState({ liked: false, count: 0 }));
+
+        const unsubscribeLikes = subscribeToPetLikes(petLikeId, syncLikeButtonState);
+        likeButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!auth.currentUser?.uid) {
+                alert('Você precisa estar logado para curtir este post.');
+                return;
+            }
+
+            try {
+                const result = await togglePetLike(petLikeId);
+                syncLikeButtonState(result);
+            } catch (error) {
+                console.error('Erro ao alterar curtida:', error);
+                alert('Não foi possível atualizar a curtida. Tente novamente.');
+            }
+        });
+
+        card.addEventListener('DOMNodeRemoved', () => unsubscribeLikes(), { once: true });
     }
 
     const reportButton = card.querySelector('[data-pet-report-btn]');
@@ -6278,6 +6373,16 @@ function openModal(pet) {
     attachImageFallback(modalImage);
     modalStatus.textContent = pet.status;
     modalStatus.className = `pet-status status-${pet.status} detail-status`;
+
+    const modalAuthorAvatar = document.querySelector('[data-modal-author-avatar]');
+    const modalAuthorName = document.querySelector('[data-modal-author-name]');
+    if (modalAuthorAvatar && modalAuthorName) {
+        void getPetAuthorInfo(pet).then(({ name, avatar }) => {
+            modalAuthorAvatar.src = avatar;
+            modalAuthorName.textContent = name;
+        });
+    }
+
     modalName.textContent = pet.nome;
     modalCity.textContent = formatCityWithState(pet);
     modalDesc.textContent = pet.descricao || 'Sem descrição disponível.';
@@ -6286,10 +6391,60 @@ function openModal(pet) {
         modalCategory.textContent = formatCategories(pet);
     }
 
+    const petLikeId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
+
+    if (modalLikeUnsubscribe) {
+        modalLikeUnsubscribe();
+        modalLikeUnsubscribe = null;
+    }
+
+    const syncModalLikeState = ({ liked, count }) => {
+        if (!modalLikeButton || !modalLikeCount) return;
+        const normalizedCount = Number.isFinite(count) ? count : 0;
+        modalLikeButton.classList.toggle('is-liked', Boolean(liked));
+        modalLikeButton.setAttribute('aria-pressed', String(Boolean(liked)));
+        modalLikeButton.title = liked ? 'Remover curtida' : 'Curtir post';
+        modalLikeCount.textContent = String(normalizedCount);
+    };
+
+    if (modalLikeButton && modalLikeCount) {
+        getPetLikeState(petLikeId, auth.currentUser?.uid).then(syncModalLikeState).catch(() => syncModalLikeState({ liked: false, count: 0 }));
+        modalLikeUnsubscribe = subscribeToPetLikes(petLikeId, syncModalLikeState);
+
+        modalLikeButton.onclick = async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!auth.currentUser?.uid) {
+                alert('Você precisa estar logado para curtir este post.');
+                return;
+            }
+
+            try {
+                const result = await togglePetLike(petLikeId);
+                syncModalLikeState(result);
+            } catch (error) {
+                console.error('Erro ao alterar curtida no modal:', error);
+                alert('Não foi possível atualizar a curtida. Tente novamente.');
+            }
+        };
+    }
+
+    if (modalShareButton) {
+        modalShareButton.onclick = async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const petWithId = { ...pet, id: petLikeId };
+            await sharePet(petWithId);
+        };
+    }
+
     const petIsAdopted = isPetAdopted(pet);
     if (modalHelpBtn) {
         modalHelpBtn.hidden = petIsAdopted;
         modalHelpBtn.disabled = petIsAdopted;
+        modalHelpBtn.style.display = petIsAdopted ? 'none' : '';
+        modalHelpBtn.setAttribute('aria-hidden', String(petIsAdopted));
     }
 
     const reportButton = document.getElementById('modal-report-btn');
@@ -6303,6 +6458,10 @@ function openModal(pet) {
 
 function closeModal() {
     if (!petModal) return;
+    if (modalLikeUnsubscribe) {
+        modalLikeUnsubscribe();
+        modalLikeUnsubscribe = null;
+    }
     petModal.classList.remove('visible');
     petModal.setAttribute('aria-hidden', 'true');
     selectedModalPet = null;

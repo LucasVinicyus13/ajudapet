@@ -211,6 +211,10 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'lucasvinicyussanches@gmail.com';
     }
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow create: if request.auth != null && request.auth.uid == userId;
@@ -231,11 +235,27 @@ service cloud.firestore {
         && request.resource.data.status in ['urgente', 'resgate', 'adotado'];
 
       allow update: if request.auth != null
-        && (resource.data.ownerUid == request.auth.uid || isAdmin())
-        && request.resource.data.ownerUid == resource.data.ownerUid;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
+        && (
+          !('likesCount' in resource.data) && request.resource.data.likesCount == 1 ||
+          request.resource.data.likesCount == resource.data.likesCount + 1 ||
+          request.resource.data.likesCount == resource.data.likesCount - 1
+        );
 
       allow delete: if request.auth != null
         && (resource.data.ownerUid == request.auth.uid || isAdmin());
+
+      match /likes/{userId} {
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['userId', 'createdAt'])
+          && !exists(/databases/$(database)/documents/pets/$(petId)/likes/$(userId));
+        allow delete: if isSignedIn()
+          && request.auth.uid == userId
+          && exists(/databases/$(database)/documents/pets/$(petId)/likes/$(userId));
+      }
     }
 
     match /reports/{reportId} {

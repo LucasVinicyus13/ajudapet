@@ -255,9 +255,7 @@ body {
 }
 
 .pet-share-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    position: static;
     width: 34px;
     height: 34px;
     border: none;
@@ -285,14 +283,112 @@ body {
 }
 
 .pet-info {
-    padding: 1.25rem;
+    padding: 0.85rem 1.25rem 1.25rem;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pet-author,
+.modal-author {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.25rem;
+    padding-right: 5.2rem;
+    margin-top: 0;
+}
+
+.pet-card .pet-author-avatar,
+.pet-card .modal-author-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 2px solid rgba(17, 17, 17, 0.08);
+    background: #f3f5f7;
+    flex-shrink: 0;
+}
+
+.modal-author .pet-author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 2px solid rgba(17, 17, 17, 0.08);
+    background: #f3f5f7;
+    flex-shrink: 0;
+}
+
+.pet-author-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--secondary);
+    line-height: 1.2;
 }
 
 .pet-info-actions {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 0.6rem;
+    right: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pet-like-button-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.18rem;
+    min-width: 34px;
+}
+
+.pet-like-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #111111;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.pet-like-btn:hover {
+    transform: translateY(-1px);
+}
+
+.pet-like-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: transparent;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.pet-like-btn.is-liked {
+    color: var(--primary);
+}
+
+.pet-like-btn.is-liked svg {
+    fill: var(--primary);
+    stroke: var(--primary);
+}
+
+.pet-like-count {
+    font-size: 0.7rem;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--secondary);
+    min-height: 0.7rem;
 }
 
 .pet-card {
@@ -827,9 +923,115 @@ body {
 }
 
 .modal-content {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem 1.5rem;
     max-height: calc(90vh - 240px);
     overflow-y: auto;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.modal-author {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.25rem;
+    padding-right: 4.25rem;
+    margin-top: 0;
+}
+
+.modal-heading-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    width: 100%;
+}
+
+.modal-heading-row .pet-name {
+    margin: 0;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.modal-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    min-width: max-content;
+}
+
+.modal-like-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.12rem;
+}
+
+.modal-like-btn,
+.modal-share-btn {
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    padding: 0;
+}
+
+.modal-like-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #111111;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.modal-like-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: transparent;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.modal-share-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(20, 33, 61, 0.72);
+    color: #fff;
+    box-shadow: 0 10px 25px rgba(20, 33, 61, 0.28);
+}
+
+.modal-share-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.modal-like-btn:hover,
+.modal-share-btn:hover {
+    transform: translateY(-1px);
+}
+
+.modal-like-btn.is-liked {
+    color: var(--primary);
+}
+
+.modal-like-btn.is-liked svg {
+    fill: var(--primary);
+    stroke: var(--primary);
+}
+
+.modal-like-count {
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--secondary);
 }
 
 .modal-desc {
