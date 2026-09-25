@@ -10,6 +10,23 @@ const userName = document.getElementById('other-user-name');
 const followButton = document.getElementById('follow-button');
 const postsContainer = document.getElementById('user-posts');
 
+function isSafeAvatarUrl(url) {
+    if (!url || typeof url !== 'string') {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(url);
+        const isStorageHost = parsed.hostname.includes('firebasestorage.googleapis.com');
+        const hasToken = parsed.searchParams.has('token');
+        const hasAltMedia = parsed.searchParams.get('alt') === 'media';
+        const looksLikeDownload = parsed.pathname.includes('/download') || parsed.pathname.includes('/o/');
+        return isStorageHost && (hasToken || hasAltMedia || looksLikeDownload);
+    } catch {
+        return false;
+    }
+}
+
 function getDefaultProfileImagePath() {
     return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
 }
@@ -66,7 +83,8 @@ async function getUserProfileData(uid) {
         const profileSnap = await getDoc(profileRef);
         const profileData = profileSnap.exists() ? profileSnap.data() : {};
         const name = profileData.displayName || profileData.name || (profileData.email ? profileData.email.split('@')[0] : 'Usuário');
-        const avatar = profileData.avatarUrl || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
+        const storedAvatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : null;
+        const avatar = storedAvatar || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
         return { name, avatar };
     } catch (error) {
         console.warn('Não foi possível carregar o perfil do usuário:', error);
@@ -293,7 +311,14 @@ let profileEmail = '';
 
 async function initUserProfile() {
     const params = new URLSearchParams(window.location.search);
-    const uid = params.get('uid');
+    let uid = params.get('uid') || sessionStorage.getItem('ajudapet-target-user-id');
+
+    if (!uid) {
+        const stored = sessionStorage.getItem('ajudapet-target-user-id');
+        if (stored) {
+            uid = stored;
+        }
+    }
 
     if (!uid) {
         if (postsContainer) postsContainer.innerHTML = '<div class="profile-empty">Usuário não encontrado.</div>';

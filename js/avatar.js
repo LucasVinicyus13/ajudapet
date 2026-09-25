@@ -3,6 +3,23 @@ import { auth } from './firebase-config.js';
 
 const PROFILE_AVATAR_KEY = 'ajudapet-profile-avatar';
 
+function isSafeAvatarUrl(url) {
+    if (!url || typeof url !== 'string') {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(url);
+        const isStorageHost = parsed.hostname.includes('firebasestorage.googleapis.com');
+        const hasToken = parsed.searchParams.has('token');
+        const hasAltMedia = parsed.searchParams.get('alt') === 'media';
+        const looksLikeDownload = parsed.pathname.includes('/download') || parsed.pathname.includes('/o/');
+        return isStorageHost && (hasToken || hasAltMedia || looksLikeDownload);
+    } catch {
+        return false;
+    }
+}
+
 function getDefaultProfileImagePath() {
     return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
 }
@@ -17,7 +34,7 @@ export async function getProfileImagePath(uid) {
         const userId = uid || auth.currentUser?.uid;
         if (userId) {
             const currentPhotoUrl = auth.currentUser?.uid === userId ? auth.currentUser?.photoURL : null;
-            if (currentPhotoUrl) {
+            if (currentPhotoUrl && isSafeAvatarUrl(currentPhotoUrl)) {
                 return currentPhotoUrl;
             }
 
@@ -33,7 +50,7 @@ export async function getProfileImagePath(uid) {
 
     // Fallback para localStorage (compatibilidade com dados antigos)
     const storedAvatar = localStorage.getItem(PROFILE_AVATAR_KEY);
-    if (storedAvatar) {
+    if (storedAvatar && isSafeAvatarUrl(storedAvatar)) {
         return storedAvatar;
     }
 

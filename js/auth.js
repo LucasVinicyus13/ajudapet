@@ -23,6 +23,17 @@ function getLoginPagePath() {
     return window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
 }
 
+function waitForAuthenticatedUser() {
+    return new Promise((resolve) => {
+        const unsubscribe = observeAuthState((user) => {
+            if (user) {
+                unsubscribe();
+                resolve(user);
+            }
+        });
+    });
+}
+
 function showLoggedInHeader(user) {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
@@ -125,9 +136,10 @@ function setupLoginForm() {
 
         try {
             await loginUser(email, password);
+            const user = await waitForAuthenticatedUser();
             showMessage(messageElement, 'Login realizado com sucesso! Redirecionando...', 'success');
-            // redireciona imediatamente para evitar demora perceptível
-            redirectToHome();
+            renderAuthState(user);
+            setTimeout(redirectToHome, 400);
         } catch (error) {
             const errorCode = error.code || '';
             let errorMessage = 'Não foi possível fazer login. Verifique seus dados.';
@@ -164,8 +176,10 @@ function setupRegisterForm() {
 
         try {
             await registerUser(name, email, password);
+            const user = await waitForAuthenticatedUser();
             showMessage(messageElement, 'Cadastro realizado com sucesso! Redirecionando...', 'success');
-            setTimeout(redirectToHome, 1000);
+            renderAuthState(user);
+            setTimeout(redirectToHome, 600);
         } catch (error) {
             const errorCode = error.code || '';
             let errorMessage = 'Não foi possível cadastrar. Verifique seus dados.';

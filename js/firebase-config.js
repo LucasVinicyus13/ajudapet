@@ -29,7 +29,9 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     updateProfile,
-    onAuthStateChanged
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
     getStorage,
@@ -257,6 +259,10 @@ export async function deletarPet(id) {
 // Inicializa o Auth do Firebase
 const auth = getAuth(app);
 
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.warn('Não foi possível definir a persistência do login:', error);
+});
+
 async function ensureUserProfile(user, extraData = {}) {
     if (!user?.uid) return;
 
@@ -326,6 +332,23 @@ export function observeAuthState(callback) {
     return onAuthStateChanged(auth, callback);
 }
 
+export function isValidStorageDownloadUrl(url) {
+    if (!url || typeof url !== 'string') {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(url);
+        const isStorageHost = parsed.hostname.includes('firebasestorage.googleapis.com');
+        const hasToken = parsed.searchParams.has('token');
+        const hasAltMedia = parsed.searchParams.get('alt') === 'media';
+        const looksLikeDownload = parsed.pathname.includes('/download') || parsed.pathname.includes('/o/');
+        return isStorageHost && (hasToken || hasAltMedia || looksLikeDownload);
+    } catch {
+        return false;
+    }
+}
+
 // Exporta o db para uso em outros arquivos se necessário
 export { db, auth, storage };
 
@@ -362,13 +385,16 @@ export async function getUserAvatarUrl(uid) {
         const profileSnap = await getDoc(doc(db, 'users', uid));
         if (profileSnap.exists()) {
             const profileData = profileSnap.data();
-            if (profileData?.avatarUrl) {
-                return profileData.avatarUrl;
+            const storedAvatarUrl = profileData?.avatarUrl;
+            if (storedAvatarUrl && isValidStorageDownloadUrl(storedAvatarUrl)) {
+                return storedAvatarUrl;
             }
         }
 
         const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
-        return await getDownloadURL(avatarRef);
+        const downloadUrl = await getDownloadURL(avatarRef);
+        await updateUserProfileData(uid, { avatarUrl: downloadUrl });
+        return downloadUrl;
     } catch (error) {
         if (error.code === 'storage/object-not-found') {
             return null;

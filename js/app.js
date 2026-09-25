@@ -6198,6 +6198,23 @@ function renderPets(pets, emptyMessage = 'Nenhum animal disponível no momento.'
     });
 }
 
+function isSafeAvatarUrl(url) {
+    if (!url || typeof url !== 'string') {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(url);
+        const isStorageHost = parsed.hostname.includes('firebasestorage.googleapis.com');
+        const hasToken = parsed.searchParams.has('token');
+        const hasAltMedia = parsed.searchParams.get('alt') === 'media';
+        const looksLikeDownload = parsed.pathname.includes('/download') || parsed.pathname.includes('/o/');
+        return isStorageHost && (hasToken || hasAltMedia || looksLikeDownload);
+    } catch {
+        return false;
+    }
+}
+
 function getDefaultProfileImagePath() {
     return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
 }
@@ -6216,7 +6233,7 @@ async function getPetAuthorInfo(pet) {
         const profileSnap = await getDoc(profileRef);
         const profileData = profileSnap.exists() ? profileSnap.data() : {};
         const name = profileData.displayName || profileData.name || fallbackName;
-        const avatar = profileData.avatarUrl || fallbackAvatar;
+        const avatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : fallbackAvatar;
 
         return { name, avatar };
     } catch (error) {
@@ -6229,10 +6246,18 @@ function isPetAdopted(pet) {
     return String(pet?.status || '').trim().toLowerCase() === 'adotado';
 }
 
+function getUserProfilePagePath() {
+    return window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html';
+}
+
 function openUserProfile(uid) {
     if (!uid) return;
-    const profilePage = window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html';
-    window.location.href = `${profilePage}?uid=${encodeURIComponent(uid)}`;
+
+    const baseUrl = new URL(window.location.href);
+    const profileUrl = new URL(getUserProfilePagePath(), baseUrl);
+    profileUrl.searchParams.set('uid', String(uid));
+    sessionStorage.setItem('ajudapet-target-user-id', String(uid));
+    window.location.href = profileUrl.toString();
 }
 
 function renderPetCard(pet) {
@@ -6252,7 +6277,7 @@ function renderPetCard(pet) {
             <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
         </div>
         <div class="pet-info">
-            <a class="pet-author pet-author-link" data-pet-author data-user-profile-link data-user-id="${ownerUid || ''}" href="${ownerUid ? (window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html') + '?uid=' + encodeURIComponent(ownerUid) : '#'}" aria-label="Ver perfil do usuário">
+            <a class="pet-author pet-author-link" data-pet-author data-user-profile-link data-user-id="${ownerUid || ''}" href="${ownerUid ? getUserProfilePagePath() + '?uid=' + encodeURIComponent(ownerUid) : '#'}" aria-label="Ver perfil do usuário">
                 <img class="pet-author-avatar" data-pet-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
                 <span class="pet-author-name" data-pet-author-name>Usuário</span>
             </a>
@@ -6302,7 +6327,7 @@ function renderPetCard(pet) {
             authorAvatar.src = avatar;
             authorName.textContent = name;
             if (authorLink && pet?.ownerUid) {
-                authorLink.href = `${window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html'}?uid=${encodeURIComponent(pet.ownerUid)}`;
+                authorLink.href = `${getUserProfilePagePath()}?uid=${encodeURIComponent(pet.ownerUid)}`;
                 authorLink.dataset.userId = pet.ownerUid;
             }
         });
@@ -6407,7 +6432,7 @@ function openModal(pet) {
             modalAuthorName.textContent = name;
             const authorUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
             if (modalAuthorLink && authorUid) {
-                modalAuthorLink.href = `${window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html'}?uid=${encodeURIComponent(authorUid)}`;
+                modalAuthorLink.href = `${getUserProfilePagePath()}?uid=${encodeURIComponent(authorUid)}`;
                 modalAuthorLink.dataset.userId = authorUid;
             }
         });
