@@ -129,6 +129,7 @@ function renderPostCard(pet, user) {
     const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
     const ownerUid = pet.ownerUid || user?.uid || pet.userId || null;
     const authorName = pet.ownerName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Usuário');
+    const isOwner = Boolean(user && (pet.ownerEmail === user.email || pet.ownerUid === user.uid));
 
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
@@ -136,24 +137,26 @@ function renderPostCard(pet, user) {
             <img src="${pet.imagem || '../assets/images/placeholder.svg'}" alt="${pet.nome}">
         </div>
         <div class="pet-info">
-            <div class="pet-author">
-                <img class="pet-author-avatar" data-profile-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
-                <span class="pet-author-name" data-profile-author-name>${authorName}</span>
-            </div>
-            <div class="pet-info-actions">
-                <div class="pet-like-button-group">
-                    <button type="button" class="pet-like-btn" data-pet-like-btn aria-label="Curtir post" aria-pressed="false" title="Curtir post">
+            <div class="pet-info-top">
+                <div class="pet-author">
+                    <img class="pet-author-avatar" data-profile-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
+                    <span class="pet-author-name" data-profile-author-name>${authorName}</span>
+                </div>
+                <div class="pet-toolbar">
+                    <div class="pet-like-button-group">
+                        <button type="button" class="pet-like-btn" data-pet-like-btn aria-label="Curtir post" aria-pressed="false" title="Curtir post">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6.12 6.12 0 0 1 15.5 4 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z"/>
+                            </svg>
+                        </button>
+                        <span class="pet-like-count" data-pet-like-count>0</span>
+                    </div>
+                    <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6.12 6.12 0 0 1 15.5 4 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z"/>
+                            <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
                         </svg>
                     </button>
-                    <span class="pet-like-count" data-pet-like-count>0</span>
                 </div>
-                <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
-                    </svg>
-                </button>
             </div>
             <div class="post-header">
                 <h3 class="pet-name">${pet.nome}</h3>
@@ -230,14 +233,12 @@ function renderPostCard(pet, user) {
         });
     }
 
-    // se for dono do post, adicionar o menu de ações no topo da área branca
     try {
-        const isOwner = user && (pet.ownerEmail === user.email || pet.ownerUid === user.uid);
         if (isOwner) {
-            const info = card.querySelector('.pet-info');
-            if (info) {
+            const toolbar = card.querySelector('.pet-toolbar');
+            if (toolbar) {
                 const menu = createPostMenu(pet, user);
-                info.appendChild(menu);
+                toolbar.appendChild(menu);
             }
         }
     } catch (e) {
@@ -266,7 +267,21 @@ function createPostMenu(pet, user) {
 
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        menu.classList.toggle('visible');
+        const shouldOpen = !menu.classList.contains('visible');
+        document.querySelectorAll('.post-menu.visible').forEach((openMenu) => {
+            if (openMenu !== menu) openMenu.classList.remove('visible');
+        });
+        if (shouldOpen) {
+            menu.classList.add('visible');
+        } else {
+            menu.classList.remove('visible');
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!wrapper.contains(event.target)) {
+            menu.classList.remove('visible');
+        }
     });
 
     menu.querySelector('.post-edit').addEventListener('click', (e) => {

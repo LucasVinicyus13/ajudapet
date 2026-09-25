@@ -14,6 +14,20 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@ajudapet.com' ||
+        request.auth.token.email == 'lucas@ajudapet.com'
+      );
+    }
+
+    function canEditPet() {
+      return isSignedIn() && (
+        request.auth.uid == resource.data.ownerUid ||
+        isAdmin()
+      );
+    }
+
     match /users/{userId} {
       allow read: if true;
       allow create, update: if isOwner(userId);
@@ -28,15 +42,21 @@ service cloud.firestore {
 
     match /pets/{petId} {
       allow read: if true;
-      allow create: if false;
-      allow update: if isSignedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
-        && (
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if canEditPet() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount']) &&
+        (
           (!('likesCount' in resource.data) && request.resource.data.likesCount == 1) ||
           request.resource.data.likesCount == resource.data.likesCount + 1 ||
           request.resource.data.likesCount == resource.data.likesCount - 1
-        );
-      allow delete: if false;
+        )
+      );
+
+      allow delete: if canEditPet();
 
       match /likes/{userId} {
         allow read: if true;
@@ -53,6 +73,7 @@ service cloud.firestore {
 ```
 
 Observações:
+- O problema do erro de edição é que a regra antiga só permitia alteração de `likesCount`; a edição completa do pet ficava bloqueada.
+- A regra acima permite edição do animal pelo dono do post e por administradores, sem abrir o documento inteiro para qualquer usuário.
+- O campo `likesCount` continua protegido para aumentar/decrementar apenas 1 por vez.
 - A unicidade real fica garantida pela subcoleção `pets/{petId}/likes/{userId}`.
-- O campo `likesCount` só pode ser incrementado ou decrementado em 1 para evitar manipulação direta do navegador.
-- O callback do frontend usa o documento único por usuário para impedir curtidas duplicadas.

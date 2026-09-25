@@ -6839,8 +6839,19 @@ async function initAddPetForm() {
             closeAddPetModal();
             form.reset();
             resetCategoryPicker();
+
+            const isProfilePage = window.location.pathname.includes('/perfil.html') ||
+                window.location.pathname.endsWith('perfil.html') ||
+                window.location.pathname.includes('/pages/perfil.html');
+
+            if (isProfilePage) {
+                document.dispatchEvent(new CustomEvent('petsUpdated', {
+                    detail: { user: auth.currentUser }
+                }));
+                return;
+            }
+
             await loadPets();
-            window.location.reload();
         } catch (error) {
             console.error('Erro ao publicar pet:', error);
             const permissionDenied = error && ((error.code && error.code.includes('permission')) || (error.message && error.message.toLowerCase().includes('permission')) || (error.message && error.message.toLowerCase().includes('insufficient permissions')));
