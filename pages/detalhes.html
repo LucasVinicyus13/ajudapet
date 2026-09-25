@@ -418,8 +418,26 @@
                     button.dataset.petId = pet.id;
                 });
 
-                document.getElementById('btn-ajudar-detail').addEventListener('click', () => openWhatsApp(pet));
-                document.getElementById('btn-ajudar-footer').addEventListener('click', () => openWhatsApp(pet));
+                const helpDetailButton = document.getElementById('btn-ajudar-detail');
+                const helpFooterButton = document.getElementById('btn-ajudar-footer');
+                const isPetAdopted = String(pet.status || '').trim().toLowerCase() === 'adotado';
+
+                if (helpDetailButton) {
+                    helpDetailButton.hidden = isPetAdopted;
+                    helpDetailButton.disabled = isPetAdopted;
+                    if (!isPetAdopted) {
+                        helpDetailButton.addEventListener('click', () => openWhatsApp(pet));
+                    }
+                }
+
+                if (helpFooterButton) {
+                    helpFooterButton.hidden = isPetAdopted;
+                    helpFooterButton.disabled = isPetAdopted;
+                    if (!isPetAdopted) {
+                        helpFooterButton.addEventListener('click', () => openWhatsApp(pet));
+                    }
+                }
+
                 document.getElementById('btn-denunciar-detail').addEventListener('click', () => openDetailReportModal(pet));
 
                 const detailReportForm = document.getElementById('detail-report-form');

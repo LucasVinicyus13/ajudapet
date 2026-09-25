@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl } from './pet-utils.js';
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');
@@ -30,6 +30,10 @@ test('shouldCompressImageDataUrl detecta imagens maiores que o limite do Firesto
   const largeDataUrl = `data:image/jpeg;base64,${'A'.repeat(1400000)}`;
   assert.equal(shouldCompressImageDataUrl(largeDataUrl), true);
   assert.equal(shouldCompressImageDataUrl('data:image/png;base64,AAAA'), false);
+});
+
+test('getAppHomeUrl retorna a URL pública principal do app', () => {
+  assert.equal(getAppHomeUrl(), 'https://ajudapet-blush.vercel.app');
 });
 
 test('buildPetShareText inclui a mensagem pronta com quebra de linha antes do link', () => {

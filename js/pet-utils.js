@@ -200,16 +200,22 @@ export function resolvePetId(pet) {
   ).trim();
 }
 
+export const APP_HOME_URL = 'https://ajudapet-blush.vercel.app';
+
+export function getAppHomeUrl() {
+  return APP_HOME_URL;
+}
+
 export function getPetDetailUrl(petOrId) {
   const petId = typeof petOrId === 'object' ? resolvePetId(petOrId) : String(petOrId || '').trim();
   if (!petId) {
-    return 'https://ajudapet-blush.vercel.app';
+    return getAppHomeUrl();
   }
 
-  return `https://ajudapet-blush.vercel.app/pages/detalhes.html?id=${encodeURIComponent(petId)}`;
+  return `${getAppHomeUrl()}/pages/detalhes.html?id=${encodeURIComponent(petId)}`;
 }
 
-export function buildPetShareText(petOrUrl = 'https://ajudapet-blush.vercel.app') {
+export function buildPetShareText(petOrUrl = getAppHomeUrl()) {
   const url = typeof petOrUrl === 'string' && petOrUrl.includes('https://')
     ? petOrUrl
     : getPetDetailUrl(petOrUrl);
@@ -217,7 +223,7 @@ export function buildPetShareText(petOrUrl = 'https://ajudapet-blush.vercel.app'
   return `Veja só esse animal que eu encontrei no AjudaPet. Clique no link abaixo para ver mais.\n${url}`;
 }
 
-export function buildReportEmailContent(petOwner, motivo, petId, baseOrigin = 'https://ajudapet-blush.vercel.app') {
+export function buildReportEmailContent(petOwner, motivo, petId, baseOrigin = getAppHomeUrl()) {
   const subject = `Denúncia registrada no post de ${petOwner}`;
   const message = `Uma denuncia foi registrada no post de ${petOwner}, pelo motivo de ${motivo}\n\nVerificar post: ${baseOrigin}/pages/verificar-post.html?id=${petId}`;
 

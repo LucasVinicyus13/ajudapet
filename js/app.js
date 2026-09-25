@@ -6190,9 +6190,14 @@ function renderPets(pets, emptyMessage = 'Nenhum animal disponível no momento.'
     });
 }
 
+function isPetAdopted(pet) {
+    return String(pet?.status || '').trim().toLowerCase() === 'adotado';
+}
+
 function renderPetCard(pet) {
     const card = document.createElement('div');
     const categorias = formatCategories(pet);
+    const petIsAdopted = isPetAdopted(pet);
     card.className = 'pet-card';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
@@ -6202,11 +6207,6 @@ function renderPetCard(pet) {
         <span class="pet-status status-${pet.status}">${pet.status}</span>
         <div class="pet-card-image-wrap">
             <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
-            <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
-                </svg>
-            </button>
         </div>
         <div class="pet-info">
             <p class="post-date">${pubDate || 'Data não disponível'}</p>
@@ -6214,8 +6214,15 @@ function renderPetCard(pet) {
             <p class="pet-city">${formatCityWithState(pet)}</p>
             <h3 class="pet-name">${pet.nome}</h3>
             <p class="pet-category">${categorias}</p>
+            <div class="pet-info-actions">
+                <button type="button" class="pet-share-btn" data-pet-share-btn aria-label="Compartilhar post" title="Compartilhar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 16a2.5 2.5 0 0 0-1.9 1l-7.4-4.2a3.1 3.1 0 0 0 0-1.6L16.1 7a2.5 2.5 0 1 0-.9-1.8L7.8 9.4a3 3 0 1 0 0 5.2l7.4 4.2A2.5 2.5 0 1 0 18 16Z"/>
+                    </svg>
+                </button>
+            </div>
             <div class="pet-card-actions">
-                <button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>
+                ${petIsAdopted ? '' : '<button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>'}
                 <button type="button" class="btn-report" data-pet-report-btn>Denunciar</button>
             </div>
         </div>
@@ -6277,6 +6284,12 @@ function openModal(pet) {
     const modalCategory = document.getElementById('modal-category');
     if (modalCategory) {
         modalCategory.textContent = formatCategories(pet);
+    }
+
+    const petIsAdopted = isPetAdopted(pet);
+    if (modalHelpBtn) {
+        modalHelpBtn.hidden = petIsAdopted;
+        modalHelpBtn.disabled = petIsAdopted;
     }
 
     const reportButton = document.getElementById('modal-report-btn');
