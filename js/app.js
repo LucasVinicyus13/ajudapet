@@ -6219,26 +6219,32 @@ function getDefaultProfileImagePath() {
     return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
 }
 
+function resolveDisplayName(profileData, fallbackName = 'Usuário') {
+    const rawName = profileData?.displayName || profileData?.name || profileData?.email?.split('@')[0] || fallbackName;
+    const normalizedName = String(rawName || '').trim();
+    return normalizedName || fallbackName;
+}
+
 async function getPetAuthorInfo(pet) {
     const ownerUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
     const fallbackName = pet?.ownerName || pet?.userName || (pet?.ownerEmail ? pet.ownerEmail.split('@')[0] : 'Usuário');
     const fallbackAvatar = getDefaultProfileImagePath();
 
     if (!ownerUid) {
-        return { name: fallbackName, avatar: fallbackAvatar };
+        return { name: fallbackName || 'Usuário', avatar: fallbackAvatar };
     }
 
     try {
         const profileRef = doc(db, 'users', ownerUid);
         const profileSnap = await getDoc(profileRef);
         const profileData = profileSnap.exists() ? profileSnap.data() : {};
-        const name = profileData.displayName || profileData.name || fallbackName;
+        const name = resolveDisplayName(profileData, fallbackName || 'Usuário');
         const avatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : fallbackAvatar;
 
         return { name, avatar };
     } catch (error) {
         console.warn('Não foi possível carregar o autor do post:', error);
-        return { name: fallbackName, avatar: fallbackAvatar };
+        return { name: fallbackName || 'Usuário', avatar: fallbackAvatar };
     }
 }
 

@@ -381,26 +381,32 @@ export async function uploadUserAvatar(uid, imageBlob) {
  * @returns {Promise<string|null>} - URL do avatar ou null se não existir.
  */
 export async function getUserAvatarUrl(uid) {
+    if (!uid) {
+        return null;
+    }
+
     try {
         const profileSnap = await getDoc(doc(db, 'users', uid));
-        if (profileSnap.exists()) {
-            const profileData = profileSnap.data();
-            const storedAvatarUrl = profileData?.avatarUrl;
-            if (storedAvatarUrl && isValidStorageDownloadUrl(storedAvatarUrl)) {
-                return storedAvatarUrl;
-            }
-        }
-
-        const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
-        const downloadUrl = await getDownloadURL(avatarRef);
-        await updateUserProfileData(uid, { avatarUrl: downloadUrl });
-        return downloadUrl;
-    } catch (error) {
-        if (error.code === 'storage/object-not-found') {
+        if (!profileSnap.exists()) {
             return null;
         }
-        console.error("Erro ao obter avatar:", error);
-        throw error;
+
+        const profileData = profileSnap.data();
+        const storedAvatarUrl = profileData?.avatarUrl;
+
+        if (!storedAvatarUrl) {
+            return null;
+        }
+
+        if (!isValidStorageDownloadUrl(storedAvatarUrl)) {
+            await updateUserProfileData(uid, { avatarUrl: '' });
+            return null;
+        }
+
+        return storedAvatarUrl;
+    } catch (error) {
+        console.error('Erro ao obter avatar do usuário:', error);
+        return null;
     }
 }
 

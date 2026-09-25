@@ -69,6 +69,37 @@ function normalizeUserId(value) {
     return value ? String(value).trim() : '';
 }
 
+function resolveDisplayName(profileData, fallbackName = 'Usuário') {
+    const rawName = profileData?.displayName || profileData?.name || profileData?.email?.split('@')[0] || fallbackName;
+    const normalizedName = String(rawName || '').trim();
+    return normalizedName || fallbackName;
+}
+
+async function resolveUserDisplayNameFromPosts(uid) {
+    try {
+        const pets = await listarPets();
+        const matchingPet = pets.find((pet) => {
+            const ownerUid = normalizeUserId(String(pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || ''));
+            if (ownerUid && ownerUid === normalizeUserId(uid)) {
+                return true;
+            }
+
+            const ownerEmail = String(pet?.ownerEmail || '').trim().toLowerCase();
+            const normalizedUid = normalizeUserId(uid).toLowerCase();
+            return Boolean(ownerEmail && ownerEmail.includes(normalizedUid));
+        });
+
+        if (!matchingPet) {
+            return 'Usuário';
+        }
+
+        const fallbackName = matchingPet?.ownerName || matchingPet?.userName || (matchingPet?.ownerEmail ? matchingPet.ownerEmail.split('@')[0] : 'Usuário');
+        return String(fallbackName || 'Usuário').trim() || 'Usuário';
+    } catch {
+        return 'Usuário';
+    }
+}
+
 async function getUserProfileData(uid) {
     const safeUid = normalizeUserId(uid);
     if (!safeUid) {
@@ -82,14 +113,19 @@ async function getUserProfileData(uid) {
         const profileRef = doc(db, 'users', safeUid);
         const profileSnap = await getDoc(profileRef);
         const profileData = profileSnap.exists() ? profileSnap.data() : {};
-        const name = profileData.displayName || profileData.name || (profileData.email ? profileData.email.split('@')[0] : 'Usuário');
+        let name = resolveDisplayName(profileData, 'Usuário');
+
+        if (!name || name === 'Usuário') {
+            name = await resolveUserDisplayNameFromPosts(safeUid);
+        }
+
         const storedAvatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : null;
         const avatar = storedAvatar || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
         return { name, avatar };
     } catch (error) {
         console.warn('Não foi possível carregar o perfil do usuário:', error);
         return {
-            name: 'Usuário',
+            name: await resolveUserDisplayNameFromPosts(safeUid),
             avatar: getDefaultProfileImagePath()
         };
     }
