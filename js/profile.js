@@ -1,7 +1,7 @@
 import { auth, db, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 let currentUser = null;
 
@@ -24,6 +24,10 @@ function setupLogoutButton() {
     if (!logoutButton) return;
 
     logoutButton.addEventListener('click', handleLogout);
+}
+
+function normalizeUserId(value) {
+    return value ? String(value).trim() : '';
 }
 
 function normalizeFollowList(values = []) {
@@ -52,6 +56,122 @@ async function getFollowingUsers(uid) {
     return getFollowListForUser(uid, 'following');
 }
 
+async function saveFollowingUsers(users, uid = auth.currentUser?.uid) {
+    const normalizedUsers = normalizeFollowList(users);
+    if (!uid) return;
+
+    try {
+        const profileRef = doc(db, 'users', uid);
+        await setDoc(profileRef, {
+            following: normalizedUsers,
+            followingUpdatedAt: new Date().toISOString()
+        }, { merge: true });
+    } catch (error) {
+        console.warn('Não foi possível salvar a lista de seguindo no Firebase:', error);
+    }
+}
+
+async function syncFollowersForAction(targetUid, currentUserUid, isFollowing) {
+    if (!targetUid || !currentUserUid || String(targetUid) === String(currentUserUid)) return;
+
+    try {
+        const profileRef = doc(db, 'users', targetUid);
+        const snapshot = await getDoc(profileRef);
+        const currentFollowers = snapshot.exists() && Array.isArray(snapshot.data()?.followers) ? snapshot.data().followers : [];
+        const normalizedFollowers = normalizeFollowList(currentFollowers);
+        const nextFollowers = new Set(normalizedFollowers);
+
+        if (isFollowing) {
+            nextFollowers.add(String(currentUserUid));
+        } else {
+            nextFollowers.delete(String(currentUserUid));
+        }
+
+        await setDoc(profileRef, {
+            followers: [...nextFollowers],
+            followersUpdatedAt: new Date().toISOString()
+        }, { merge: true });
+    } catch (error) {
+        console.warn('Não foi possível salvar o follower no Firebase:', error);
+    }
+}
+
+async function isFollowingUser(uid) {
+    if (!auth.currentUser?.uid || !uid) {
+        return false;
+    }
+
+    const followingUsers = await getFollowingUsers(auth.currentUser.uid);
+    return followingUsers.includes(String(uid));
+}
+
+async function getUserPostsCountForUid(uid) {
+    if (!uid) return 0;
+
+    try {
+        const pets = await listarPets();
+        return pets.filter((pet) => matchesUserPost(pet, uid, auth.currentUser?.email || '')).length;
+    } catch {
+        return 0;
+    }
+}
+
+function resolveProfileName(profileData, fallbackName = 'Usuário') {
+    const rawName = profileData?.displayName || profileData?.name || profileData?.email?.split('@')[0] || fallbackName;
+    const normalizedName = String(rawName || '').trim();
+    return normalizedName || fallbackName;
+}
+
+async function getUserProfileData(uid) {
+    const safeUid = normalizeUserId(uid);
+    if (!safeUid) {
+        return {
+            name: 'Usuário',
+            avatar: getDefaultProfileImagePath()
+        };
+    }
+
+    try {
+        const profileRef = doc(db, 'users', safeUid);
+        const profileSnap = await getDoc(profileRef);
+        const profileData = profileSnap.exists() ? profileSnap.data() : {};
+
+        let name = resolveProfileName(profileData, 'Usuário');
+        if (!name || name === 'Usuário') {
+            const pets = await listarPets();
+            const matchingPet = pets.find((pet) => {
+                const ownerUid = normalizeUserId(String(pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || ''));
+                if (ownerUid && ownerUid === safeUid) {
+                    return true;
+                }
+
+                const ownerEmail = String(pet?.ownerEmail || '').trim().toLowerCase();
+                const normalizedUid = safeUid.toLowerCase();
+                return Boolean(ownerEmail && ownerEmail.includes(normalizedUid));
+            });
+
+            if (matchingPet) {
+                name = resolveProfileName({
+                    displayName: matchingPet.ownerName || matchingPet.userName,
+                    email: matchingPet.ownerEmail || '',
+                    name: matchingPet.ownerName || matchingPet.userName || ''
+                }, 'Usuário');
+            }
+        }
+
+        const avatar = profileData.avatarUrl || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
+        return {
+            name: name || 'Usuário',
+            avatar
+        };
+    } catch {
+        return {
+            name: 'Usuário',
+            avatar: getDefaultProfileImagePath()
+        };
+    }
+}
+
 async function updateProfileStats(uid, forcePostsCount = null) {
     const followersCountEl = document.getElementById('profile-followers-count');
     const followingCountEl = document.getElementById('profile-following-count');
@@ -75,8 +195,7 @@ async function updateProfileStats(uid, forcePostsCount = null) {
     }
 
     try {
-        const pets = await listarPets();
-        postsCount = pets.filter((pet) => matchesUserPost(pet, uid, auth.currentUser?.email || '')).length;
+        postsCount = await getUserPostsCountForUid(uid);
     } catch (error) {
         console.warn('Não foi possível atualizar a quantidade de posts:', error);
     }
@@ -104,13 +223,9 @@ async function openProfileListModal(uid, mode = 'followers') {
 
     const items = await Promise.all(userIds.map(async (userUid) => {
         try {
-            const profileRef = doc(db, 'users', userUid);
-            const profileSnap = await getDoc(profileRef);
-            const data = profileSnap.exists() ? profileSnap.data() || {} : {};
-            const name = String(data.displayName || data.name || data.email || 'Usuário').trim() || 'Usuário';
-            const avatar = data.avatarUrl || await getProfileImagePath(userUid) || getDefaultProfileImagePath();
-            const posts = await listarPets().then((pets) => pets.filter((pet) => matchesUserPost(pet, userUid, data.email || '')).length).catch(() => 0);
-            return { uid: userUid, name, avatar, posts };
+            const profile = await getUserProfileData(userUid);
+            const posts = await getUserPostsCountForUid(userUid);
+            return { uid: userUid, name: profile.name, avatar: profile.avatar, posts };
         } catch {
             return null;
         }
@@ -125,18 +240,37 @@ async function openProfileListModal(uid, mode = 'followers') {
         return;
     }
 
-    list.innerHTML = validItems.map((user) => `
-        <div class="follower-item follower-item--clickable" data-profile-user-uid="${user.uid}" tabindex="0" role="button" aria-label="Abrir perfil de ${user.name}">
-            <img class="follower-user-avatar" src="${user.avatar || getDefaultProfileImagePath()}" alt="${user.name}" loading="lazy">
-            <div class="follower-user-main">
-                <div class="follower-user-name">${user.name}</div>
-                <div class="follower-user-posts">${user.posts} ${user.posts === 1 ? 'post' : 'posts'}</div>
+    const renderedItems = await Promise.all(validItems.map(async (user) => {
+        const isCurrentUser = auth.currentUser?.uid && String(user.uid) === String(auth.currentUser.uid);
+        const isFollowing = auth.currentUser?.uid ? await isFollowingUser(user.uid) : false;
+        const actionButton = isCurrentUser
+            ? ''
+            : `
+                <button type="button" class="follower-follow-btn ${isFollowing ? 'is-following' : ''}" data-follow-user-uid="${user.uid}">
+                    ${isFollowing ? 'Seguindo' : 'Seguir'}
+                </button>
+            `;
+
+        return `
+            <div class="follower-item follower-item--clickable" data-profile-user-uid="${user.uid}" tabindex="0" role="button" aria-label="Abrir perfil de ${user.name}">
+                <img class="follower-user-avatar" src="${user.avatar || getDefaultProfileImagePath()}" alt="${user.name}" loading="lazy">
+                <div class="follower-user-main">
+                    <div class="follower-user-name">${user.name}</div>
+                    <div class="follower-user-posts">${user.posts} ${user.posts === 1 ? 'post' : 'posts'}</div>
+                </div>
+                ${actionButton}
             </div>
-        </div>
-    `).join('');
+        `;
+    }));
+
+    list.innerHTML = renderedItems.join('');
 
     list.querySelectorAll('.follower-item--clickable').forEach((item) => {
-        const openProfile = () => {
+        const openProfile = (event) => {
+            if (event && event.target.closest('.follower-follow-btn')) {
+                return;
+            }
+
             const targetUid = item.dataset.profileUserUid;
             if (!targetUid) return;
             sessionStorage.setItem('ajudapet-target-user-id', String(targetUid));
@@ -155,8 +289,33 @@ async function openProfileListModal(uid, mode = 'followers') {
         item.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                openProfile();
+                openProfile(event);
             }
+        });
+    });
+
+    list.querySelectorAll('.follower-follow-btn').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            const targetUid = button.dataset.followUserUid;
+            if (!auth.currentUser?.uid || !targetUid) {
+                alert('Você precisa fazer login para seguir este usuário.');
+                return;
+            }
+
+            const current = await getFollowingUsers(auth.currentUser.uid);
+            const isNowFollowing = !current.includes(targetUid);
+            const filtered = current.filter((item) => String(item) !== String(targetUid));
+            if (isNowFollowing) {
+                filtered.push(targetUid);
+            }
+
+            await saveFollowingUsers(filtered, auth.currentUser.uid);
+            await syncFollowersForAction(targetUid, auth.currentUser.uid, isNowFollowing);
+            button.classList.toggle('is-following', isNowFollowing);
+            button.textContent = isNowFollowing ? 'Seguindo' : 'Seguir';
+            await updateProfileStats(auth.currentUser.uid);
+            openProfileListModal(auth.currentUser.uid, mode);
         });
     });
 
@@ -178,9 +337,8 @@ function attachProfileStatsHandlers() {
             if (!currentUid) return;
 
             if (mode === 'posts') {
-                const pets = await listarPets();
-                const count = pets.filter((pet) => matchesUserPost(pet, currentUid, auth.currentUser?.email || '')).length;
-                await updateProfileStats(currentUid, count);
+                const postsCount = await getUserPostsCountForUid(currentUid);
+                await updateProfileStats(currentUid, postsCount);
                 return;
             }
 
