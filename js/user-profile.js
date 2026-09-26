@@ -1,14 +1,18 @@
 import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState } from './firebase-config.js';
 import { getProfileImagePath } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId } from './pet-utils.js';
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const FOLLOWING_KEY = 'ajudapet-following-users';
+const FOLLOWERS_KEY = 'ajudapet-followers';
 
 const userAvatar = document.getElementById('other-user-avatar');
 const userName = document.getElementById('other-user-name');
 const followButton = document.getElementById('follow-button');
 const postsContainer = document.getElementById('user-posts');
+const followersCountEl = document.getElementById('user-followers-count');
+const followingCountEl = document.getElementById('user-following-count');
+const postsCountEl = document.getElementById('user-posts-count');
 
 function isSafeAvatarUrl(url) {
     if (!url || typeof url !== 'string') {
@@ -43,20 +47,89 @@ function requireLogin(message) {
     return true;
 }
 
-function getFollowingUsers() {
+function getFollowingUsers(uid = auth.currentUser?.uid) {
+    const storageKey = uid ? `${FOLLOWING_KEY}:${uid}` : FOLLOWING_KEY;
     try {
-        return JSON.parse(localStorage.getItem(FOLLOWING_KEY) || '[]');
+        return JSON.parse(localStorage.getItem(storageKey) || '[]');
     } catch {
         return [];
     }
 }
 
-function saveFollowingUsers(users) {
-    localStorage.setItem(FOLLOWING_KEY, JSON.stringify(users));
+async function saveFollowingUsers(users, uid = auth.currentUser?.uid) {
+    const storageKey = uid ? `${FOLLOWING_KEY}:${uid}` : FOLLOWING_KEY;
+    const normalizedUsers = Array.from(new Set((users || []).map((item) => String(item).trim()).filter(Boolean)));
+    localStorage.setItem(storageKey, JSON.stringify(normalizedUsers));
+
+    if (!uid) return;
+
+    try {
+        const profileRef = doc(db, 'users', uid);
+        await setDoc(profileRef, { following: normalizedUsers }, { merge: true });
+    } catch (error) {
+        console.warn('Não foi possível salvar a lista de seguindo no Firebase:', error);
+    }
+}
+
+async function loadFollowingStateFromFirebase(uid = auth.currentUser?.uid) {
+    if (!uid) return [];
+
+    try {
+        const profileRef = doc(db, 'users', uid);
+        const snapshot = await getDoc(profileRef);
+        const following = snapshot.exists() && Array.isArray(snapshot.data()?.following) ? snapshot.data().following : [];
+        const normalizedFollowing = Array.from(new Set(following.map((item) => String(item).trim()).filter(Boolean)));
+        localStorage.setItem(`${FOLLOWING_KEY}:${uid}`, JSON.stringify(normalizedFollowing));
+        return normalizedFollowing;
+    } catch (error) {
+        console.warn('Não foi possível carregar a lista de seguindo do Firebase:', error);
+        return getFollowingUsers(uid);
+    }
+}
+
+function getFollowersMap() {
+    try {
+        return JSON.parse(localStorage.getItem(FOLLOWERS_KEY) || '{}');
+    } catch {
+        return {};
+    }
+}
+
+function saveFollowersMap(map) {
+    localStorage.setItem(FOLLOWERS_KEY, JSON.stringify(map));
+}
+
+function getFollowersForUser(uid) {
+    const map = getFollowersMap();
+    const followers = map?.[uid] || [];
+    return Array.isArray(followers) ? followers : [];
+}
+
+async function syncFollowersForAction(targetUid, currentUserUid, isFollowing) {
+    if (!targetUid || !currentUserUid || String(targetUid) === String(currentUserUid)) return;
+
+    const map = getFollowersMap();
+    const followers = new Set(Array.isArray(map[targetUid]) ? map[targetUid] : []);
+
+    if (isFollowing) {
+        followers.add(String(currentUserUid));
+    } else {
+        followers.delete(String(currentUserUid));
+    }
+
+    map[targetUid] = [...followers];
+    saveFollowersMap(map);
+
+    try {
+        const targetRef = doc(db, 'users', targetUid);
+        await setDoc(targetRef, { followers: [...followers] }, { merge: true });
+    } catch (error) {
+        console.warn('Não foi possível salvar o follower no Firebase:', error);
+    }
 }
 
 function isFollowingUser(uid) {
-    return getFollowingUsers().includes(uid);
+    return getFollowingUsers(auth.currentUser?.uid).includes(uid);
 }
 
 function updateFollowButtonState(uid) {
@@ -67,6 +140,22 @@ function updateFollowButtonState(uid) {
     followButton.innerHTML = `<span>${following ? 'Seguindo' : 'Seguir'}</span>`;
     followButton.setAttribute('aria-pressed', String(following));
     followButton.title = following ? 'Deixar de seguir' : 'Seguir usuário';
+}
+
+function updateUserStats(uid, postsCount = 0) {
+    if (followersCountEl) {
+        const followersCount = getFollowersForUser(uid).length;
+        followersCountEl.textContent = String(followersCount);
+    }
+
+    if (followingCountEl) {
+        const followingCount = getFollowingUsers(uid).length;
+        followingCountEl.textContent = String(followingCount);
+    }
+
+    if (postsCountEl) {
+        postsCountEl.textContent = String(postsCount);
+    }
 }
 
 function getUserProfilePath(uid) {
@@ -332,6 +421,7 @@ async function loadUserPosts(uid) {
         const pets = await listarPets();
         const userPosts = pets.filter((pet) => matchesUserPost(pet, uid));
 
+        updateUserStats(uid, userPosts.length);
         postsContainer.innerHTML = '';
 
         if (!userPosts.length) {
@@ -400,19 +490,30 @@ async function initUserProfile() {
             profileEmail = String(data.email || '');
         }
 
+        if (auth.currentUser?.uid) {
+            const firebaseFollowing = await loadFollowingStateFromFirebase(auth.currentUser.uid);
+            const current = getFollowingUsers(auth.currentUser.uid);
+            if (!current.length && firebaseFollowing.length) {
+                localStorage.setItem(`${FOLLOWING_KEY}:${auth.currentUser.uid}`, JSON.stringify(firebaseFollowing));
+            }
+        }
+
         updateFollowButtonState(uid);
         if (followButton) {
-            followButton.onclick = () => {
+            followButton.onclick = async () => {
                 if (!requireLogin('Você precisa fazer login para seguir este usuário.')) {
                     return;
                 }
 
-                const current = getFollowingUsers();
-                const filtered = current.filter((item) => item !== uid);
-                if (!current.includes(uid)) {
+                const current = getFollowingUsers(auth.currentUser.uid);
+                const filtered = current.filter((item) => String(item) !== String(uid));
+                const isNowFollowing = !current.includes(uid);
+                if (isNowFollowing) {
                     filtered.push(uid);
                 }
-                saveFollowingUsers(filtered);
+                await saveFollowingUsers(filtered, auth.currentUser.uid);
+                await syncFollowersForAction(uid, auth.currentUser.uid, isNowFollowing);
+                updateUserStats(uid, Number(postsCountEl?.textContent || 0));
                 updateFollowButtonState(uid);
             };
         }
