@@ -653,15 +653,18 @@ async function initUserProfile() {
         if (auth.currentUser?.uid) {
             const firebaseFollowing = await loadFollowingStateFromFirebase(auth.currentUser.uid);
             const current = getFollowingUsers(auth.currentUser.uid);
-            if (!current.length && firebaseFollowing.length) {
-                localStorage.setItem(`${FOLLOWING_KEY}:${auth.currentUser.uid}`, JSON.stringify(firebaseFollowing));
-            }
+            const resolvedFollowing = firebaseFollowing.length >= current.length ? firebaseFollowing : current;
+            localStorage.setItem(`${FOLLOWING_KEY}:${auth.currentUser.uid}`, JSON.stringify(resolvedFollowing));
         }
 
         const firebaseFollowers = await loadFollowersStateFromFirebase(uid);
-        const currentFollowers = getFollowersForUser(uid);
-        if (!currentFollowers.length && firebaseFollowers.length) {
-            const map = getFollowersMap();
+        const map = getFollowersMap();
+        const currentFollowers = Array.isArray(map[uid]) ? map[uid] : [];
+        const shouldRefreshFollowers = firebaseFollowers.length !== currentFollowers.length ||
+            firebaseFollowers.some((value) => !currentFollowers.includes(value)) ||
+            currentFollowers.some((value) => !firebaseFollowers.includes(value));
+
+        if (shouldRefreshFollowers) {
             map[uid] = firebaseFollowers;
             saveFollowersMap(map);
         }
