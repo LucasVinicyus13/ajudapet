@@ -1,6 +1,7 @@
-import { auth, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState } from './firebase-config.js';
+import { auth, db, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
-import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId } from './pet-utils.js';
+import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 let currentUser = null;
 
@@ -25,6 +26,169 @@ function setupLogoutButton() {
     logoutButton.addEventListener('click', handleLogout);
 }
 
+function normalizeFollowList(values = []) {
+    return Array.from(new Set((values || []).map((item) => String(item).trim()).filter(Boolean)));
+}
+
+async function getFollowListForUser(uid, fieldName) {
+    if (!uid) return [];
+
+    try {
+        const profileRef = doc(db, 'users', uid);
+        const snapshot = await getDoc(profileRef);
+        const list = snapshot.exists() && Array.isArray(snapshot.data()?.[fieldName]) ? snapshot.data()[fieldName] : [];
+        return normalizeFollowList(list);
+    } catch (error) {
+        console.warn(`Não foi possível carregar ${fieldName} do Firebase:`, error);
+        return [];
+    }
+}
+
+async function getFollowersForUser(uid) {
+    return getFollowListForUser(uid, 'followers');
+}
+
+async function getFollowingUsers(uid) {
+    return getFollowListForUser(uid, 'following');
+}
+
+async function updateProfileStats(uid, forcePostsCount = null) {
+    const followersCountEl = document.getElementById('profile-followers-count');
+    const followingCountEl = document.getElementById('profile-following-count');
+    const postsCountEl = document.getElementById('profile-posts-count');
+    if (!uid) return;
+
+    let followersCount = 0;
+    let followingCount = 0;
+    let postsCount = 0;
+
+    try {
+        const profileRef = doc(db, 'users', uid);
+        const profileSnap = await getDoc(profileRef);
+        if (profileSnap.exists()) {
+            const data = profileSnap.data() || {};
+            followersCount = Array.isArray(data.followers) ? data.followers.length : 0;
+            followingCount = Array.isArray(data.following) ? data.following.length : 0;
+        }
+    } catch (error) {
+        console.warn('Não foi possível atualizar os contadores de seguidores/seguindo:', error);
+    }
+
+    try {
+        const pets = await listarPets();
+        postsCount = pets.filter((pet) => matchesUserPost(pet, uid, auth.currentUser?.email || '')).length;
+    } catch (error) {
+        console.warn('Não foi possível atualizar a quantidade de posts:', error);
+    }
+
+    if (forcePostsCount !== null && Number.isFinite(forcePostsCount)) {
+        postsCount = Number(forcePostsCount);
+    }
+
+    if (followersCountEl) followersCountEl.textContent = String(followersCount);
+    if (followingCountEl) followingCountEl.textContent = String(followingCount);
+    if (postsCountEl) postsCountEl.textContent = String(postsCount);
+}
+
+async function openProfileListModal(uid, mode = 'followers') {
+    const modal = document.getElementById('followers-modal');
+    const list = document.getElementById('followers-modal-list');
+    const title = document.getElementById('followers-modal-title');
+    if (!modal || !list || !title) return;
+
+    const userIds = mode === 'following' ? await getFollowingUsers(uid) : await getFollowersForUser(uid);
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    title.textContent = mode === 'following' ? 'Seguindo' : 'Seguidores';
+    list.innerHTML = '<div class="profile-empty">Carregando...</div>';
+
+    const items = await Promise.all(userIds.map(async (userUid) => {
+        try {
+            const profileRef = doc(db, 'users', userUid);
+            const profileSnap = await getDoc(profileRef);
+            const data = profileSnap.exists() ? profileSnap.data() || {} : {};
+            const name = String(data.displayName || data.name || data.email || 'Usuário').trim() || 'Usuário';
+            const avatar = data.avatarUrl || await getProfileImagePath(userUid) || getDefaultProfileImagePath();
+            const posts = await listarPets().then((pets) => pets.filter((pet) => matchesUserPost(pet, userUid, data.email || '')).length).catch(() => 0);
+            return { uid: userUid, name, avatar, posts };
+        } catch {
+            return null;
+        }
+    }));
+
+    const validItems = items.filter(Boolean);
+
+    if (!validItems.length) {
+        list.innerHTML = mode === 'following'
+            ? '<div class="profile-empty">Você ainda não segue ninguém.</div>'
+            : '<div class="profile-empty">Ainda não há seguidores.</div>';
+        return;
+    }
+
+    list.innerHTML = validItems.map((user) => `
+        <div class="follower-item follower-item--clickable" data-profile-user-uid="${user.uid}" tabindex="0" role="button" aria-label="Abrir perfil de ${user.name}">
+            <img class="follower-user-avatar" src="${user.avatar || getDefaultProfileImagePath()}" alt="${user.name}" loading="lazy">
+            <div class="follower-user-main">
+                <div class="follower-user-name">${user.name}</div>
+                <div class="follower-user-posts">${user.posts} ${user.posts === 1 ? 'post' : 'posts'}</div>
+            </div>
+        </div>
+    `).join('');
+
+    list.querySelectorAll('.follower-item--clickable').forEach((item) => {
+        const openProfile = () => {
+            const targetUid = item.dataset.profileUserUid;
+            if (!targetUid) return;
+            sessionStorage.setItem('ajudapet-target-user-id', String(targetUid));
+            const targetPath = getProfileTargetPagePath(targetUid, auth.currentUser?.uid ?? null, window.location.pathname);
+            const base = new URL(window.location.href);
+            const finalUrl = new URL(targetPath, base);
+            if (targetUid === auth.currentUser?.uid) {
+                finalUrl.searchParams.delete('uid');
+            } else {
+                finalUrl.searchParams.set('uid', String(targetUid));
+            }
+            window.location.href = finalUrl.toString();
+        };
+
+        item.addEventListener('click', openProfile);
+        item.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openProfile();
+            }
+        });
+    });
+
+    const closeButtons = modal.querySelectorAll('[data-close-followers-modal]');
+    closeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+        });
+    });
+}
+
+function attachProfileStatsHandlers() {
+    const statButtons = document.querySelectorAll('[data-profile-stat]');
+    statButtons.forEach((button) => {
+        button.addEventListener('click', async () => {
+            const mode = button.dataset.profileStat;
+            const currentUid = auth.currentUser?.uid;
+            if (!currentUid) return;
+
+            if (mode === 'posts') {
+                const pets = await listarPets();
+                const count = pets.filter((pet) => matchesUserPost(pet, currentUid, auth.currentUser?.email || '')).length;
+                await updateProfileStats(currentUid, count);
+                return;
+            }
+
+            openProfileListModal(currentUid, mode);
+        });
+    });
+}
+
 async function renderProfile(user) {
     const nameField = document.getElementById('profile-name');
     const emailField = document.getElementById('profile-email');
@@ -35,7 +199,7 @@ async function renderProfile(user) {
     const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Usuário');
     nameField.textContent = displayName;
     emailField.textContent = user.email || 'Sem e-mail';
-    
+
     try {
         const avatarUrl = await getProfileImagePath(user.uid);
         avatar.src = avatarUrl;
@@ -43,6 +207,9 @@ async function renderProfile(user) {
         console.error('Erro ao carregar avatar:', error);
         avatar.src = getDefaultProfileImagePath();
     }
+
+    await updateProfileStats(user.uid);
+    attachProfileStatsHandlers();
 }
 
 function setupAvatarUpload() {
@@ -333,6 +500,16 @@ window.openWhatsapp = openWhatsapp;
 window.addEventListener('DOMContentLoaded', () => {
     setupAvatarUpload();
     setupLogoutButton();
+
+    const modal = document.getElementById('followers-modal');
+    if (modal) {
+        modal.querySelectorAll('[data-close-followers-modal]').forEach((button) => {
+            button.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            });
+        });
+    }
 
     observeAuthState(async (user) => {
         if (user) {

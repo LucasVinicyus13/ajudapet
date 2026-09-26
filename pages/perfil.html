@@ -32,6 +32,32 @@
             <h2 id="profile-name">Nome do usuário</h2>
             <p id="profile-email">email@exemplo.com</p>
 
+            <div class="user-profile-stats" aria-label="Estatísticas do perfil">
+                <div class="user-profile-stat user-profile-stat--clickable" data-profile-stat="followers">
+                    <strong id="profile-followers-count">0</strong>
+                    <span>Seguidores</span>
+                </div>
+                <div class="user-profile-stat user-profile-stat--clickable" data-profile-stat="following">
+                    <strong id="profile-following-count">0</strong>
+                    <span>Seguindo</span>
+                </div>
+                <div class="user-profile-stat user-profile-stat--clickable" data-profile-stat="posts">
+                    <strong id="profile-posts-count">0</strong>
+                    <span>Posts</span>
+                </div>
+            </div>
+
+            <div id="followers-modal" class="followers-modal hidden" aria-hidden="true">
+                <div class="followers-modal-backdrop" data-close-followers-modal></div>
+                <div class="followers-modal-card" role="dialog" aria-modal="true" aria-labelledby="followers-modal-title">
+                    <div class="followers-modal-header">
+                        <h3 id="followers-modal-title">Seguidores</h3>
+                        <button type="button" class="followers-modal-close" data-close-followers-modal aria-label="Fechar lista">×</button>
+                    </div>
+                    <div id="followers-modal-list" class="followers-modal-list"></div>
+                </div>
+            </div>
+
             <div class="profile-field profile-posts-title">
                 <span>Seus posts</span>
             </div>

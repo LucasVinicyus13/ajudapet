@@ -652,6 +652,11 @@ body {
     border-radius: 16px;
     background: #f8fafc;
     border: 1px solid #edf2f7;
+    cursor: pointer;
+}
+
+.follower-item:hover {
+    opacity: 0.92;
 }
 
 .follower-user-avatar {

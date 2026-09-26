@@ -286,7 +286,7 @@ async function openUserListModal(uid, mode = 'followers') {
             `;
 
         return `
-            <div class="follower-item">
+            <div class="follower-item follower-item--clickable" data-user-uid="${user.uid}" tabindex="0" role="button" aria-label="Abrir perfil de ${user.name}">
                 <img class="follower-user-avatar" src="${user.avatar || getDefaultProfileImagePath()}" alt="${user.name}" loading="lazy">
                 <div class="follower-user-main">
                     <div class="follower-user-name">${user.name}</div>
@@ -299,8 +299,32 @@ async function openUserListModal(uid, mode = 'followers') {
 
     list.innerHTML = renderedItems.join('');
 
+    list.querySelectorAll('.follower-item--clickable').forEach((item) => {
+        const openProfile = () => {
+            const targetUid = item.dataset.userUid;
+            if (!targetUid) return;
+            sessionStorage.setItem('ajudapet-target-user-id', String(targetUid));
+            window.location.href = getUserProfilePath(targetUid);
+        };
+
+        item.addEventListener('click', (event) => {
+            if (event.target.closest('.follower-follow-btn')) {
+                return;
+            }
+            openProfile();
+        });
+
+        item.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openProfile();
+            }
+        });
+    });
+
     list.querySelectorAll('.follower-follow-btn').forEach((button) => {
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', async (event) => {
+            event.stopPropagation();
             const targetUid = button.dataset.userUid;
             if (!auth.currentUser?.uid || !targetUid) {
                 alert('Você precisa fazer login para seguir este usuário.');
