@@ -95,18 +95,6 @@ async function loadFollowersStateFromFirebase(uid) {
     }
 }
 
-function getFollowersMap() {
-    try {
-        return JSON.parse(localStorage.getItem(FOLLOWERS_KEY) || '{}');
-    } catch {
-        return {};
-    }
-}
-
-function saveFollowersMap(map) {
-    localStorage.setItem(FOLLOWERS_KEY, JSON.stringify(map));
-}
-
 async function getFollowersForUser(uid) {
     if (!uid) {
         return [];
@@ -650,33 +638,19 @@ async function initUserProfile() {
         }
 
         if (auth.currentUser?.uid) {
-            const firebaseFollowing = await loadFollowingStateFromFirebase(auth.currentUser.uid);
-            const current = getFollowingUsers(auth.currentUser.uid);
-            const resolvedFollowing = firebaseFollowing.length >= current.length ? firebaseFollowing : current;
-            localStorage.setItem(`${FOLLOWING_KEY}:${auth.currentUser.uid}`, JSON.stringify(resolvedFollowing));
+            await loadFollowingStateFromFirebase(auth.currentUser.uid);
         }
 
-        const firebaseFollowers = await loadFollowersStateFromFirebase(uid);
-        const map = getFollowersMap();
-        const currentFollowers = Array.isArray(map[uid]) ? map[uid] : [];
-        const shouldRefreshFollowers = firebaseFollowers.length !== currentFollowers.length ||
-            firebaseFollowers.some((value) => !currentFollowers.includes(value)) ||
-            currentFollowers.some((value) => !firebaseFollowers.includes(value));
-
-        if (shouldRefreshFollowers) {
-            map[uid] = firebaseFollowers;
-            saveFollowersMap(map);
-        }
-
+        await loadFollowersStateFromFirebase(uid);
         await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
-        updateFollowButtonState(uid);
+        await updateFollowButtonState(uid);
         if (followButton) {
             followButton.onclick = async () => {
                 if (!requireLogin('Você precisa fazer login para seguir este usuário.')) {
                     return;
                 }
 
-                const current = getFollowingUsers(auth.currentUser.uid);
+                const current = await getFollowingUsers(auth.currentUser.uid);
                 const filtered = current.filter((item) => String(item) !== String(uid));
                 const isNowFollowing = !current.includes(uid);
                 if (isNowFollowing) {
@@ -684,8 +658,8 @@ async function initUserProfile() {
                 }
                 await saveFollowingUsers(filtered, auth.currentUser.uid);
                 await syncFollowersForAction(uid, auth.currentUser.uid, isNowFollowing);
-                await await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
-                updateFollowButtonState(uid);
+                await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
+                await updateFollowButtonState(uid);
             };
         }
 
