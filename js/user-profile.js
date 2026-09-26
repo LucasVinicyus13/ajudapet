@@ -65,7 +65,10 @@ async function saveFollowingUsers(users, uid = auth.currentUser?.uid) {
 
     try {
         const profileRef = doc(db, 'users', uid);
-        await setDoc(profileRef, { following: normalizedUsers }, { merge: true });
+        await setDoc(profileRef, {
+            following: normalizedUsers,
+            followingUpdatedAt: new Date().toISOString()
+        }, { merge: true });
     } catch (error) {
         console.warn('Não foi possível salvar a lista de seguindo no Firebase:', error);
     }
@@ -87,6 +90,26 @@ async function loadFollowingStateFromFirebase(uid = auth.currentUser?.uid) {
     }
 }
 
+async function loadFollowersStateFromFirebase(uid) {
+    if (!uid) return [];
+
+    try {
+        const profileRef = doc(db, 'users', uid);
+        const snapshot = await getDoc(profileRef);
+        const followers = snapshot.exists() && Array.isArray(snapshot.data()?.followers) ? snapshot.data().followers : [];
+        const normalizedFollowers = Array.from(new Set(followers.map((item) => String(item).trim()).filter(Boolean)));
+
+        const map = getFollowersMap();
+        map[uid] = normalizedFollowers;
+        saveFollowersMap(map);
+
+        return normalizedFollowers;
+    } catch (error) {
+        console.warn('Não foi possível carregar a lista de seguidores do Firebase:', error);
+        return getFollowersForUser(uid);
+    }
+}
+
 function getFollowersMap() {
     try {
         return JSON.parse(localStorage.getItem(FOLLOWERS_KEY) || '{}');
@@ -97,6 +120,23 @@ function getFollowersMap() {
 
 function saveFollowersMap(map) {
     localStorage.setItem(FOLLOWERS_KEY, JSON.stringify(map));
+}
+
+async function saveFollowersMapToFirebase(map) {
+    if (!map || typeof map !== 'object') return;
+
+    const entries = Object.entries(map).filter(([, value]) => Array.isArray(value));
+    await Promise.all(entries.map(async ([userUid, followers]) => {
+        try {
+            const profileRef = doc(db, 'users', userUid);
+            await setDoc(profileRef, {
+                followers: Array.from(new Set((followers || []).map((item) => String(item).trim()).filter(Boolean))),
+                followersUpdatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (error) {
+            console.warn(`Não foi possível salvar os seguidores de ${userUid} no Firebase:`, error);
+        }
+    }));
 }
 
 function getFollowersForUser(uid) {
@@ -119,10 +159,14 @@ async function syncFollowersForAction(targetUid, currentUserUid, isFollowing) {
 
     map[targetUid] = [...followers];
     saveFollowersMap(map);
+    await saveFollowersMapToFirebase(map);
 
     try {
         const targetRef = doc(db, 'users', targetUid);
-        await setDoc(targetRef, { followers: [...followers] }, { merge: true });
+        await setDoc(targetRef, {
+            followers: [...followers],
+            followersUpdatedAt: new Date().toISOString()
+        }, { merge: true });
     } catch (error) {
         console.warn('Não foi possível salvar o follower no Firebase:', error);
     }
@@ -612,6 +656,14 @@ async function initUserProfile() {
             if (!current.length && firebaseFollowing.length) {
                 localStorage.setItem(`${FOLLOWING_KEY}:${auth.currentUser.uid}`, JSON.stringify(firebaseFollowing));
             }
+        }
+
+        const firebaseFollowers = await loadFollowersStateFromFirebase(uid);
+        const currentFollowers = getFollowersForUser(uid);
+        if (!currentFollowers.length && firebaseFollowers.length) {
+            const map = getFollowersMap();
+            map[uid] = firebaseFollowers;
+            saveFollowersMap(map);
         }
 
         updateFollowButtonState(uid);
