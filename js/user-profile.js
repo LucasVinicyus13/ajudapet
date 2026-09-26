@@ -3,9 +3,6 @@ import { getProfileImagePath } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-const FOLLOWING_KEY = 'ajudapet-following-users';
-const FOLLOWERS_KEY = 'ajudapet-followers';
-
 const userAvatar = document.getElementById('other-user-avatar');
 const userName = document.getElementById('other-user-name');
 const followButton = document.getElementById('follow-button');
@@ -47,19 +44,24 @@ function requireLogin(message) {
     return true;
 }
 
-function getFollowingUsers(uid = auth.currentUser?.uid) {
-    const storageKey = uid ? `${FOLLOWING_KEY}:${uid}` : FOLLOWING_KEY;
+async function getFollowingUsers(uid = auth.currentUser?.uid) {
+    if (!uid) {
+        return [];
+    }
+
     try {
-        return JSON.parse(localStorage.getItem(storageKey) || '[]');
-    } catch {
+        const profileRef = doc(db, 'users', uid);
+        const snapshot = await getDoc(profileRef);
+        const following = snapshot.exists() && Array.isArray(snapshot.data()?.following) ? snapshot.data().following : [];
+        return Array.from(new Set(following.map((item) => String(item).trim()).filter(Boolean)));
+    } catch (error) {
+        console.warn('Não foi possível carregar a lista de seguindo do Firebase:', error);
         return [];
     }
 }
 
 async function saveFollowingUsers(users, uid = auth.currentUser?.uid) {
-    const storageKey = uid ? `${FOLLOWING_KEY}:${uid}` : FOLLOWING_KEY;
     const normalizedUsers = Array.from(new Set((users || []).map((item) => String(item).trim()).filter(Boolean)));
-    localStorage.setItem(storageKey, JSON.stringify(normalizedUsers));
 
     if (!uid) return;
 
@@ -75,19 +77,7 @@ async function saveFollowingUsers(users, uid = auth.currentUser?.uid) {
 }
 
 async function loadFollowingStateFromFirebase(uid = auth.currentUser?.uid) {
-    if (!uid) return [];
-
-    try {
-        const profileRef = doc(db, 'users', uid);
-        const snapshot = await getDoc(profileRef);
-        const following = snapshot.exists() && Array.isArray(snapshot.data()?.following) ? snapshot.data().following : [];
-        const normalizedFollowing = Array.from(new Set(following.map((item) => String(item).trim()).filter(Boolean)));
-        localStorage.setItem(`${FOLLOWING_KEY}:${uid}`, JSON.stringify(normalizedFollowing));
-        return normalizedFollowing;
-    } catch (error) {
-        console.warn('Não foi possível carregar a lista de seguindo do Firebase:', error);
-        return getFollowingUsers(uid);
-    }
+    return getFollowingUsers(uid);
 }
 
 async function loadFollowersStateFromFirebase(uid) {
@@ -98,15 +88,10 @@ async function loadFollowersStateFromFirebase(uid) {
         const snapshot = await getDoc(profileRef);
         const followers = snapshot.exists() && Array.isArray(snapshot.data()?.followers) ? snapshot.data().followers : [];
         const normalizedFollowers = Array.from(new Set(followers.map((item) => String(item).trim()).filter(Boolean)));
-
-        const map = getFollowersMap();
-        map[uid] = normalizedFollowers;
-        saveFollowersMap(map);
-
         return normalizedFollowers;
     } catch (error) {
         console.warn('Não foi possível carregar a lista de seguidores do Firebase:', error);
-        return getFollowersForUser(uid);
+        return [];
     }
 }
 
@@ -122,49 +107,41 @@ function saveFollowersMap(map) {
     localStorage.setItem(FOLLOWERS_KEY, JSON.stringify(map));
 }
 
-async function saveFollowersMapToFirebase(map) {
-    if (!map || typeof map !== 'object') return;
+async function getFollowersForUser(uid) {
+    if (!uid) {
+        return [];
+    }
 
-    const entries = Object.entries(map).filter(([, value]) => Array.isArray(value));
-    await Promise.all(entries.map(async ([userUid, followers]) => {
-        try {
-            const profileRef = doc(db, 'users', userUid);
-            await setDoc(profileRef, {
-                followers: Array.from(new Set((followers || []).map((item) => String(item).trim()).filter(Boolean))),
-                followersUpdatedAt: new Date().toISOString()
-            }, { merge: true });
-        } catch (error) {
-            console.warn(`Não foi possível salvar os seguidores de ${userUid} no Firebase:`, error);
-        }
-    }));
-}
-
-function getFollowersForUser(uid) {
-    const map = getFollowersMap();
-    const followers = map?.[uid] || [];
-    return Array.isArray(followers) ? followers : [];
+    try {
+        const profileRef = doc(db, 'users', uid);
+        const snapshot = await getDoc(profileRef);
+        const followers = snapshot.exists() && Array.isArray(snapshot.data()?.followers) ? snapshot.data().followers : [];
+        return Array.from(new Set(followers.map((item) => String(item).trim()).filter(Boolean)));
+    } catch (error) {
+        console.warn('Não foi possível carregar os seguidores do Firebase:', error);
+        return [];
+    }
 }
 
 async function syncFollowersForAction(targetUid, currentUserUid, isFollowing) {
     if (!targetUid || !currentUserUid || String(targetUid) === String(currentUserUid)) return;
 
-    const map = getFollowersMap();
-    const followers = new Set(Array.isArray(map[targetUid]) ? map[targetUid] : []);
-
-    if (isFollowing) {
-        followers.add(String(currentUserUid));
-    } else {
-        followers.delete(String(currentUserUid));
-    }
-
-    map[targetUid] = [...followers];
-    saveFollowersMap(map);
-    await saveFollowersMapToFirebase(map);
-
     try {
         const targetRef = doc(db, 'users', targetUid);
+        const snapshot = await getDoc(targetRef);
+        const currentFollowers = snapshot.exists() && Array.isArray(snapshot.data()?.followers) ? snapshot.data().followers : [];
+        const normalizedFollowers = Array.from(new Set(currentFollowers.map((item) => String(item).trim()).filter(Boolean)));
+        const nextFollowers = new Set(normalizedFollowers);
+
+        if (isFollowing) {
+            nextFollowers.add(String(currentUserUid));
+        } else {
+            nextFollowers.delete(String(currentUserUid));
+        }
+
+        const followersArray = [...nextFollowers];
         await setDoc(targetRef, {
-            followers: [...followers],
+            followers: followersArray,
             followersUpdatedAt: new Date().toISOString()
         }, { merge: true });
     } catch (error) {
@@ -172,8 +149,13 @@ async function syncFollowersForAction(targetUid, currentUserUid, isFollowing) {
     }
 }
 
-function isFollowingUser(uid) {
-    return getFollowingUsers(auth.currentUser?.uid).includes(uid);
+async function isFollowingUser(uid) {
+    if (!auth.currentUser?.uid || !uid) {
+        return false;
+    }
+
+    const followingUsers = await getFollowingUsers(auth.currentUser.uid);
+    return followingUsers.includes(String(uid));
 }
 
 async function getUserPostsCountForUid(uid) {
@@ -187,24 +169,39 @@ async function getUserPostsCountForUid(uid) {
     }
 }
 
-function updateFollowButtonState(uid) {
+async function updateFollowButtonState(uid) {
     if (!followButton) return;
 
-    const following = isFollowingUser(uid);
+    const following = await isFollowingUser(uid);
     followButton.classList.toggle('is-following', following);
     followButton.innerHTML = `<span>${following ? 'Seguindo' : 'Seguir'}</span>`;
     followButton.setAttribute('aria-pressed', String(following));
     followButton.title = following ? 'Deixar de seguir' : 'Seguir usuário';
 }
 
-function updateUserStats(uid, postsCount = 0) {
+async function updateUserStats(uid, postsCount = 0) {
+    let followersCount = 0;
+    let followingCount = 0;
+
+    try {
+        if (uid) {
+            const profileRef = doc(db, 'users', uid);
+            const profileSnap = await getDoc(profileRef);
+            if (profileSnap.exists()) {
+                const data = profileSnap.data() || {};
+                followersCount = Array.isArray(data.followers) ? data.followers.length : 0;
+                followingCount = Array.isArray(data.following) ? data.following.length : 0;
+            }
+        }
+    } catch (error) {
+        console.warn('Não foi possível atualizar os contadores do usuário pelo Firebase:', error);
+    }
+
     if (followersCountEl) {
-        const followersCount = getFollowersForUser(uid).length;
         followersCountEl.textContent = String(followersCount);
     }
 
     if (followingCountEl) {
-        const followingCount = getFollowingUsers(uid).length;
         followingCountEl.textContent = String(followingCount);
     }
 
@@ -248,7 +245,7 @@ async function openUserListModal(uid, mode = 'followers') {
     const title = document.getElementById('followers-modal-title');
     if (!modal || !list || !title) return;
 
-    const userIds = mode === 'following' ? getFollowingUsers(uid) : getFollowersForUser(uid);
+    const userIds = mode === 'following' ? await getFollowingUsers(uid) : await getFollowersForUser(uid);
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     title.textContent = mode === 'following' ? 'Seguindo' : 'Seguidores';
@@ -289,9 +286,9 @@ async function openUserListModal(uid, mode = 'followers') {
         return;
     }
 
-    list.innerHTML = validItems.map((user) => {
+    const renderedItems = await Promise.all(validItems.map(async (user) => {
         const isCurrentUser = auth.currentUser?.uid && String(user.uid) === String(auth.currentUser.uid);
-        const isFollowing = auth.currentUser?.uid ? isFollowingUser(user.uid) : false;
+        const isFollowing = auth.currentUser?.uid ? await isFollowingUser(user.uid) : false;
         const actionButton = isCurrentUser
             ? ''
             : `
@@ -310,7 +307,9 @@ async function openUserListModal(uid, mode = 'followers') {
                 ${actionButton}
             </div>
         `;
-    }).join('');
+    }));
+
+    list.innerHTML = renderedItems.join('');
 
     list.querySelectorAll('.follower-follow-btn').forEach((button) => {
         button.addEventListener('click', async () => {
@@ -320,7 +319,7 @@ async function openUserListModal(uid, mode = 'followers') {
                 return;
             }
 
-            const current = getFollowingUsers(auth.currentUser.uid);
+            const current = await getFollowingUsers(auth.currentUser.uid);
             const isNowFollowing = !current.includes(targetUid);
             const filtered = current.filter((item) => String(item) !== String(targetUid));
             if (isNowFollowing) {
@@ -331,7 +330,7 @@ async function openUserListModal(uid, mode = 'followers') {
             await syncFollowersForAction(targetUid, auth.currentUser.uid, isNowFollowing);
             button.classList.toggle('is-following', isNowFollowing);
             button.textContent = isNowFollowing ? 'Seguindo' : 'Seguir';
-            updateUserStats(uid, Number(postsCountEl?.textContent || 0));
+            await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
             openUserListModal(uid, mode);
         });
     });
@@ -669,6 +668,7 @@ async function initUserProfile() {
             saveFollowersMap(map);
         }
 
+        await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
         updateFollowButtonState(uid);
         if (followButton) {
             followButton.onclick = async () => {
@@ -684,7 +684,7 @@ async function initUserProfile() {
                 }
                 await saveFollowingUsers(filtered, auth.currentUser.uid);
                 await syncFollowersForAction(uid, auth.currentUser.uid, isNowFollowing);
-                updateUserStats(uid, Number(postsCountEl?.textContent || 0));
+                await await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
                 updateFollowButtonState(uid);
             };
         }
