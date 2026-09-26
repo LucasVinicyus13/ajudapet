@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl, getProfileTargetPagePath } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');
@@ -63,4 +63,11 @@ test('getProfileTargetPagePath usa o perfil próprio quando o autor é o usuári
   assert.equal(getProfileTargetPagePath('user-123', 'user-123', '/pages/index.html'), 'perfil.html');
   assert.equal(getProfileTargetPagePath('user-123', 'user-456', '/index.html'), 'pages/perfil-usuario.html');
   assert.equal(getProfileTargetPagePath('user-123', 'user-456', '/pages/index.html'), 'perfil-usuario.html');
+});
+
+test('matchesUserPost identifica corretamente o dono do post sem duplicar ou confundir e-mails parecidos', () => {
+  assert.equal(matchesUserPost({ ownerUid: 'uid-1', ownerEmail: 'ana@email.com' }, 'uid-1', 'ana@email.com'), true);
+  assert.equal(matchesUserPost({ ownerUid: 'uid-2', ownerEmail: 'outro@email.com' }, 'uid-1', 'ana@email.com'), false);
+  assert.equal(matchesUserPost({ ownerUid: 'uid-1', ownerEmail: 'ana@empresa.com' }, 'uid-1', 'ana@email.com'), true);
+  assert.equal(matchesUserPost({ ownerUid: 'uid-3', ownerEmail: 'ana@email.com.br' }, 'uid-1', 'ana@email.com'), false);
 });

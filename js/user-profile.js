@@ -1,6 +1,6 @@
 import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState } from './firebase-config.js';
 import { getProfileImagePath } from './avatar.js';
-import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId } from './pet-utils.js';
+import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const FOLLOWING_KEY = 'ajudapet-following-users';
@@ -132,6 +132,17 @@ function isFollowingUser(uid) {
     return getFollowingUsers(auth.currentUser?.uid).includes(uid);
 }
 
+async function getUserPostsCountForUid(uid) {
+    if (!uid) return 0;
+
+    try {
+        const pets = await listarPets();
+        return pets.filter((pet) => matchesUserPost(pet, uid)).length;
+    } catch {
+        return 0;
+    }
+}
+
 function updateFollowButtonState(uid) {
     if (!followButton) return;
 
@@ -156,6 +167,134 @@ function updateUserStats(uid, postsCount = 0) {
     if (postsCountEl) {
         postsCountEl.textContent = String(postsCount);
     }
+}
+
+function attachFollowersModalHandlers() {
+    const modal = document.getElementById('followers-modal');
+    if (!modal) return;
+
+    const closeButtons = modal.querySelectorAll('[data-close-followers-modal]');
+    closeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+        });
+    });
+
+    const bindStatClick = (countEl, mode) => {
+        const stat = countEl?.closest('.user-profile-stat');
+        if (!stat) return;
+
+        stat.classList.add('user-profile-stat--clickable');
+        stat.addEventListener('click', () => {
+            const currentUid = new URLSearchParams(window.location.search).get('uid') || sessionStorage.getItem('ajudapet-target-user-id');
+            if (currentUid) {
+                openUserListModal(currentUid, mode);
+            }
+        });
+    };
+
+    bindStatClick(followersCountEl, 'followers');
+    bindStatClick(followingCountEl, 'following');
+}
+
+async function openUserListModal(uid, mode = 'followers') {
+    const modal = document.getElementById('followers-modal');
+    const list = document.getElementById('followers-modal-list');
+    const title = document.getElementById('followers-modal-title');
+    if (!modal || !list || !title) return;
+
+    const userIds = mode === 'following' ? getFollowingUsers(uid) : getFollowersForUser(uid);
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    title.textContent = mode === 'following' ? 'Seguindo' : 'Seguidores';
+    list.innerHTML = `<div class="profile-empty">Carregando ${mode === 'following' ? 'seguidos' : 'seguidores'}...</div>`;
+
+    const items = await Promise.all(userIds.map(async (userUid) => {
+        try {
+            const profile = await getUserProfileData(userUid);
+            const userPostsCount = await getUserPostsCountForUid(userUid);
+            return {
+                uid: userUid,
+                name: profile.name,
+                avatar: profile.avatar,
+                posts: userPostsCount
+            };
+        } catch {
+            return null;
+        }
+    }));
+
+    const validItems = items
+        .filter(Boolean)
+        .sort((left, right) => {
+            const leftIsCurrent = String(left.uid) === String(auth.currentUser?.uid);
+            const rightIsCurrent = String(right.uid) === String(auth.currentUser?.uid);
+
+            if (leftIsCurrent !== rightIsCurrent) {
+                return leftIsCurrent ? -1 : 1;
+            }
+
+            return 0;
+        });
+
+    if (!validItems.length) {
+        list.innerHTML = mode === 'following'
+            ? '<div class="profile-empty">Este usuário ainda não segue ninguém.</div>'
+            : '<div class="profile-empty">Nenhuma pessoa segue este usuário ainda.</div>';
+        return;
+    }
+
+    list.innerHTML = validItems.map((user) => {
+        const isCurrentUser = auth.currentUser?.uid && String(user.uid) === String(auth.currentUser.uid);
+        const isFollowing = auth.currentUser?.uid ? isFollowingUser(user.uid) : false;
+        const actionButton = isCurrentUser
+            ? ''
+            : `
+                <button type="button" class="follower-follow-btn ${isFollowing ? 'is-following' : ''}" data-user-uid="${user.uid}">
+                    ${isFollowing ? 'Seguindo' : 'Seguir'}
+                </button>
+            `;
+
+        return `
+            <div class="follower-item">
+                <img class="follower-user-avatar" src="${user.avatar || getDefaultProfileImagePath()}" alt="${user.name}" loading="lazy">
+                <div class="follower-user-main">
+                    <div class="follower-user-name">${user.name}</div>
+                    <div class="follower-user-posts">${user.posts} ${user.posts === 1 ? 'post' : 'posts'}</div>
+                </div>
+                ${actionButton}
+            </div>
+        `;
+    }).join('');
+
+    list.querySelectorAll('.follower-follow-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const targetUid = button.dataset.userUid;
+            if (!auth.currentUser?.uid || !targetUid) {
+                alert('Você precisa fazer login para seguir este usuário.');
+                return;
+            }
+
+            const current = getFollowingUsers(auth.currentUser.uid);
+            const isNowFollowing = !current.includes(targetUid);
+            const filtered = current.filter((item) => String(item) !== String(targetUid));
+            if (isNowFollowing) {
+                filtered.push(targetUid);
+            }
+
+            await saveFollowingUsers(filtered, auth.currentUser.uid);
+            await syncFollowersForAction(targetUid, auth.currentUser.uid, isNowFollowing);
+            button.classList.toggle('is-following', isNowFollowing);
+            button.textContent = isNowFollowing ? 'Seguindo' : 'Seguir';
+            updateUserStats(uid, Number(postsCountEl?.textContent || 0));
+            openUserListModal(uid, mode);
+        });
+    });
+}
+
+async function openFollowersModal(uid) {
+    return openUserListModal(uid, 'followers');
 }
 
 function getUserProfilePath(uid) {
@@ -390,36 +529,13 @@ function renderPetCard(pet, authorName, authorAvatarUrl) {
     return card;
 }
 
-function matchesUserPost(pet, uid) {
-    const candidates = [
-        pet?.ownerUid,
-        pet?.ownerId,
-        pet?.userId,
-        pet?.uid,
-        pet?.user?.uid,
-        pet?.authorUid,
-        pet?.owner?.uid
-    ];
-
-    const normalizedCandidates = candidates
-        .filter(Boolean)
-        .map((value) => normalizeUserId(String(value)));
-
-    if (normalizedCandidates.includes(normalizeUserId(uid))) {
-        return true;
-    }
-
-    const ownerEmail = pet?.ownerEmail ? String(pet.ownerEmail).toLowerCase() : '';
-    const profileEmailNormalized = normalizeUserId(profileEmail || '').toLowerCase();
-    return profileEmailNormalized && ownerEmail && ownerEmail === profileEmailNormalized;
-}
 
 async function loadUserPosts(uid) {
     if (!postsContainer) return;
 
     try {
         const pets = await listarPets();
-        const userPosts = pets.filter((pet) => matchesUserPost(pet, uid));
+        const userPosts = pets.filter((pet) => matchesUserPost(pet, uid, profileEmail, profileEmail));
 
         updateUserStats(uid, userPosts.length);
         postsContainer.innerHTML = '';
@@ -518,6 +634,7 @@ async function initUserProfile() {
             };
         }
 
+        attachFollowersModalHandlers();
         await loadUserPosts(uid);
     } catch (error) {
         console.error('Erro ao inicializar o perfil do usuário:', error);

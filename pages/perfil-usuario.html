@@ -46,6 +46,17 @@
                 </button>
             </div>
 
+            <div id="followers-modal" class="followers-modal hidden" aria-hidden="true">
+                <div class="followers-modal-backdrop" data-close-followers-modal></div>
+                <div class="followers-modal-card" role="dialog" aria-modal="true" aria-labelledby="followers-modal-title">
+                    <div class="followers-modal-header">
+                        <h3 id="followers-modal-title">Seguidores</h3>
+                        <button type="button" class="followers-modal-close" data-close-followers-modal aria-label="Fechar seguidores">×</button>
+                    </div>
+                    <div id="followers-modal-list" class="followers-modal-list"></div>
+                </div>
+            </div>
+
             <div class="profile-field profile-posts-title">
                 <span>Posts de usuário</span>
             </div>

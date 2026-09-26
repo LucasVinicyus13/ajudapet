@@ -211,6 +211,41 @@ export function getProfileTargetPagePath(targetUserId, currentUserId = null, pat
   return isInPagesFolder ? 'perfil-usuario.html' : 'pages/perfil-usuario.html';
 }
 
+export function matchesUserPost(pet, uid, profileEmail = '') {
+  if (!pet || !uid) {
+    return false;
+  }
+
+  const normalizedUid = String(uid).trim();
+  const candidates = [
+    pet?.ownerUid,
+    pet?.ownerId,
+    pet?.userId,
+    pet?.uid,
+    pet?.user?.uid,
+    pet?.authorUid,
+    pet?.owner?.uid,
+    pet?.owner?.id
+  ];
+
+  const normalizedCandidates = candidates
+    .filter(Boolean)
+    .map((value) => String(value).trim());
+
+  if (normalizedUid && normalizedCandidates.includes(normalizedUid)) {
+    return true;
+  }
+
+  const ownerEmail = pet?.ownerEmail ? String(pet.ownerEmail).trim().toLowerCase() : '';
+  const profileEmailNormalized = String(profileEmail || '').trim().toLowerCase();
+
+  if (!profileEmailNormalized || !ownerEmail) {
+    return false;
+  }
+
+  return ownerEmail === profileEmailNormalized;
+}
+
 export const APP_HOME_URL = 'https://ajudapet-blush.vercel.app';
 
 export function getAppHomeUrl() {
