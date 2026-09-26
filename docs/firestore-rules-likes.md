@@ -77,3 +77,53 @@ Observações:
 - A regra acima permite edição do animal pelo dono do post e por administradores, sem abrir o documento inteiro para qualquer usuário.
 - O campo `likesCount` continua protegido para aumentar/decrementar apenas 1 por vez.
 - A unicidade real fica garantida pela subcoleção `pets/{petId}/likes/{userId}`.
+
+## Regras do Firestore para seguidores e seguindo
+
+Se a app deve salvar apenas no Firestore e não em localStorage, use uma regra que permita:
+- o usuário ler qualquer perfil;
+- o usuário alterar apenas o array `following` do próprio documento;
+- o usuário alterar apenas o array `followers` do documento do alvo quando estiver seguindo ou deixando de seguir.
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserFollowList(data) {
+      return data is list && data.size() >= 0 && data.every((value) => value is string);
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+
+      allow update: if isSignedIn() && (
+        (
+          userId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['following', 'followingUpdatedAt']) &&
+          isValidUserFollowList(request.resource.data.following)
+        ) || (
+          userId != request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers', 'followersUpdatedAt']) &&
+          isValidUserFollowList(request.resource.data.followers)
+        )
+      );
+
+      allow create: if isOwner(userId);
+      allow delete: if false;
+    }
+  }
+}
+```
+
+Importante:
+- O estado de seguidores/seguindo deve ser calculado a partir do Firestore e exibido em tempo real nos textos e contadores.
+- Não use `localStorage` como fonte de verdade para `followers` e `following`.
+- A atualização ocorre ao clicar no botão de seguir/deixar de seguir, e o valor é refletido para todos os usuários que consultam o perfil.
