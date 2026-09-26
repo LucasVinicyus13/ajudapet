@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl, getProfileTargetPagePath } from './pet-utils.js';
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');
@@ -56,4 +56,11 @@ test('buildReportEmailContent monta a mensagem de denúncia com o link de verifi
   const { subject, message } = buildReportEmailContent('dono@teste.com', 'Outro', 'abc-123', 'https://ajudapet-blush.vercel.app');
   assert.equal(subject, 'Denúncia registrada no post de dono@teste.com');
   assert.match(message, /pages\/verificar-post\.html\?id=abc-123/);
+});
+
+test('getProfileTargetPagePath usa o perfil próprio quando o autor é o usuário conectado', () => {
+  assert.equal(getProfileTargetPagePath('user-123', 'user-123', '/index.html'), 'pages/perfil.html');
+  assert.equal(getProfileTargetPagePath('user-123', 'user-123', '/pages/index.html'), 'perfil.html');
+  assert.equal(getProfileTargetPagePath('user-123', 'user-456', '/index.html'), 'pages/perfil-usuario.html');
+  assert.equal(getProfileTargetPagePath('user-123', 'user-456', '/pages/index.html'), 'perfil-usuario.html');
 });

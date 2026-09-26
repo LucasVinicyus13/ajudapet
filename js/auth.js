@@ -1,4 +1,4 @@
-import { loginUser, registerUser, observeAuthState, auth } from './firebase-config.js';
+import { loginUser, registerUser, observeAuthState, auth, listarPets } from './firebase-config.js';
 import { getProfileImagePath, getDefaultProfileImagePath } from './avatar.js';
 
 function showMessage(element, message, type = 'error') {
@@ -34,6 +34,23 @@ function waitForAuthenticatedUser() {
     });
 }
 
+async function getUserPostsCount(user) {
+    if (!user?.uid && !user?.email) return 0;
+
+    try {
+        const pets = await listarPets();
+        const normalizedEmail = String(user.email || '').trim().toLowerCase();
+        return pets.filter((pet) => {
+            const isSameUid = Boolean(user?.uid && String(pet.ownerUid || pet.ownerId || pet.userId || pet.uid || '') === String(user.uid));
+            const isSameEmail = Boolean(normalizedEmail && String(pet.ownerEmail || '').trim().toLowerCase() === normalizedEmail);
+            return isSameUid || isSameEmail;
+        }).length;
+    } catch (error) {
+        console.warn('Erro ao contar posts do usuário:', error);
+        return 0;
+    }
+}
+
 function showLoggedInHeader(user) {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
@@ -55,19 +72,43 @@ function showLoggedInHeader(user) {
     const profileLink = document.createElement('a');
     profileLink.href = getProfilePagePath();
     profileLink.title = 'Meu perfil';
-    profileLink.className = 'profile-avatar-link';
+    profileLink.className = 'user-profile-summary-link';
+    profileLink.setAttribute('aria-label', 'Abrir meu perfil');
+
+    const profileSummary = document.createElement('div');
+    profileSummary.className = 'user-profile-summary';
 
     const profileImage = document.createElement('img');
     profileImage.src = getDefaultProfileImagePath();
     profileImage.alt = 'Perfil do usuário';
-    profileImage.className = 'profile-avatar';
+    profileImage.className = 'user-profile-summary-avatar';
 
-    profileLink.appendChild(profileImage);
+    const summaryMeta = document.createElement('div');
+    summaryMeta.className = 'user-profile-summary-meta';
+
+    const profileName = document.createElement('span');
+    profileName.className = 'user-profile-summary-name';
+    profileName.textContent = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
+
+    const profilePostsCount = document.createElement('span');
+    profilePostsCount.className = 'user-profile-summary-posts';
+    profilePostsCount.textContent = '0 posts';
+
+    summaryMeta.appendChild(profileName);
+    summaryMeta.appendChild(profilePostsCount);
+    profileSummary.appendChild(profileImage);
+    profileSummary.appendChild(summaryMeta);
+    profileLink.appendChild(profileSummary);
+
     actions.appendChild(addButton);
     actions.appendChild(profileLink);
 
     setAuthMenuContent([actions]);
     void loadProfileImage(profileImage, user?.uid);
+    void getUserPostsCount(user).then((count) => {
+        const label = count === 1 ? '1 post' : `${count} posts`;
+        profilePostsCount.textContent = label;
+    });
 }
 
 async function loadProfileImage(imageElement, uid) {

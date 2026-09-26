@@ -90,6 +90,64 @@ body {
     gap: 0.75rem;
 }
 
+.user-profile-summary-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-dark);
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.user-profile-summary-link:hover,
+.user-profile-summary-link:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    border-color: #dfe5ee;
+}
+
+.user-profile-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.user-profile-summary-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+    background: var(--bg-light);
+    flex-shrink: 0;
+}
+
+.user-profile-summary-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    min-width: 0;
+}
+
+.user-profile-summary-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--secondary);
+    white-space: nowrap;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-profile-summary-posts {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
 .btn-add-pet {
     width: 46px;
     height: 46px;

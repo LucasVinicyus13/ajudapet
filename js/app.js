@@ -3,8 +3,8 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db } from './firebase-config.js';
-import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId } from './pet-utils.js';
+import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
+import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CATEGORIES = [
@@ -6252,18 +6252,35 @@ function isPetAdopted(pet) {
     return String(pet?.status || '').trim().toLowerCase() === 'adotado';
 }
 
-function getUserProfilePagePath() {
-    return window.location.pathname.includes('/pages/') ? 'perfil-usuario.html' : 'pages/perfil-usuario.html';
+function getUserProfilePagePath(uid = null) {
+    return getProfileTargetPagePath(uid ?? null, auth.currentUser?.uid ?? null, window.location.pathname);
 }
 
 function openUserProfile(uid) {
     if (!uid) return;
 
-    const baseUrl = new URL(window.location.href);
-    const profileUrl = new URL(getUserProfilePagePath(), baseUrl);
-    profileUrl.searchParams.set('uid', String(uid));
-    sessionStorage.setItem('ajudapet-target-user-id', String(uid));
-    window.location.href = profileUrl.toString();
+    const resolveTargetPage = (currentUserId) => {
+        const targetPage = getProfileTargetPagePath(String(uid), currentUserId ?? null, window.location.pathname);
+        const baseUrl = new URL(window.location.href);
+        const profileUrl = new URL(targetPage, baseUrl);
+        if (currentUserId && String(currentUserId) === String(uid)) {
+            profileUrl.searchParams.delete('uid');
+        } else {
+            profileUrl.searchParams.set('uid', String(uid));
+        }
+        sessionStorage.setItem('ajudapet-target-user-id', String(uid));
+        window.location.href = profileUrl.toString();
+    };
+
+    if (auth.currentUser?.uid) {
+        resolveTargetPage(auth.currentUser.uid);
+        return;
+    }
+
+    const unsubscribe = observeAuthState((user) => {
+        unsubscribe();
+        resolveTargetPage(user?.uid ?? null);
+    });
 }
 
 function renderPetCard(pet) {
@@ -6277,13 +6294,15 @@ function renderPetCard(pet) {
     const ageDays = computeAgeDaysFromPet(pet);
     const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
 
+    const profilePagePath = ownerUid ? getUserProfilePagePath(ownerUid) : null;
+
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
         <div class="pet-card-image-wrap">
             <img src="${pet.imagem || FALLBACK_IMAGE}" alt="${pet.nome}" loading="lazy">
         </div>
         <div class="pet-info">
-            <a class="pet-author pet-author-link" data-pet-author data-user-profile-link data-user-id="${ownerUid || ''}" href="${ownerUid ? getUserProfilePagePath() + '?uid=' + encodeURIComponent(ownerUid) : '#'}" aria-label="Ver perfil do usuário">
+            <a class="pet-author pet-author-link" data-pet-author data-user-profile-link data-user-id="${ownerUid || ''}" href="${ownerUid && profilePagePath ? profilePagePath + '?uid=' + encodeURIComponent(ownerUid) : '#'}" aria-label="Ver perfil do usuário">
                 <img class="pet-author-avatar" data-pet-author-avatar src="${getDefaultProfileImagePath()}" alt="Foto do usuário" loading="lazy">
                 <span class="pet-author-name" data-pet-author-name>Usuário</span>
             </a>
@@ -6333,7 +6352,7 @@ function renderPetCard(pet) {
             authorAvatar.src = avatar;
             authorName.textContent = name;
             if (authorLink && pet?.ownerUid) {
-                authorLink.href = `${getUserProfilePagePath()}?uid=${encodeURIComponent(pet.ownerUid)}`;
+                authorLink.href = `${getUserProfilePagePath(pet.ownerUid)}?uid=${encodeURIComponent(pet.ownerUid)}`;
                 authorLink.dataset.userId = pet.ownerUid;
             }
         });
@@ -6438,7 +6457,7 @@ function openModal(pet) {
             modalAuthorName.textContent = name;
             const authorUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
             if (modalAuthorLink && authorUid) {
-                modalAuthorLink.href = `${getUserProfilePagePath()}?uid=${encodeURIComponent(authorUid)}`;
+                modalAuthorLink.href = `${getUserProfilePagePath(authorUid)}?uid=${encodeURIComponent(authorUid)}`;
                 modalAuthorLink.dataset.userId = authorUid;
             }
         });

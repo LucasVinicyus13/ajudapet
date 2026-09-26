@@ -1,4 +1,4 @@
-import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState } from './firebase-config.js';
+import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState } from './firebase-config.js';
 import { getProfileImagePath } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -361,6 +361,26 @@ async function initUserProfile() {
         if (stored) {
             uid = stored;
         }
+    }
+
+    const redirectToOwnProfile = () => {
+        const redirectPath = window.location.pathname.includes('/pages/') ? 'perfil.html' : 'pages/perfil.html';
+        window.location.replace(redirectPath);
+        return true;
+    };
+
+    if (uid && auth.currentUser && String(auth.currentUser.uid) === String(uid)) {
+        redirectToOwnProfile();
+        return;
+    }
+
+    if (uid) {
+        const unsubscribe = observeAuthState((user) => {
+            unsubscribe();
+            if (user && String(user.uid) === String(uid)) {
+                redirectToOwnProfile();
+            }
+        });
     }
 
     if (!uid) {

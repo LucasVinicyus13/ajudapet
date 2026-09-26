@@ -200,6 +200,17 @@ export function resolvePetId(pet) {
   ).trim();
 }
 
+export function getProfileTargetPagePath(targetUserId, currentUserId = null, pathname = typeof window !== 'undefined' ? window.location.pathname : '/') {
+  const isOwnProfile = !!targetUserId && !!currentUserId && String(targetUserId) === String(currentUserId);
+  const isInPagesFolder = String(pathname || '').includes('/pages/');
+
+  if (isOwnProfile) {
+    return isInPagesFolder ? 'perfil.html' : 'pages/perfil.html';
+  }
+
+  return isInPagesFolder ? 'perfil-usuario.html' : 'pages/perfil-usuario.html';
+}
+
 export const APP_HOME_URL = 'https://ajudapet-blush.vercel.app';
 
 export function getAppHomeUrl() {
