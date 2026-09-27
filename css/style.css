@@ -51,6 +51,17 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+#auth-menu {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 #app-logo {
@@ -87,7 +98,10 @@ body {
 .auth-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.75rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .user-profile-summary-link {
@@ -97,10 +111,14 @@ body {
     color: var(--text-dark);
     background: #f3f4f6;
     border: 1px solid #e5e7eb;
-    border-radius: 16px;
+    border-radius: 999px;
     padding: 0.5rem 0.75rem;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    max-width: min(220px, calc(100vw - 150px));
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: visible;
 }
 
 .user-profile-summary-link:hover,
@@ -114,16 +132,35 @@ body {
     display: flex;
     align-items: center;
     gap: 0.65rem;
+    min-width: 0;
+    width: 100%;
+}
+
+.user-profile-summary-avatar-wrap {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    background: transparent;
+    overflow: visible;
 }
 
 .user-profile-summary-avatar {
     width: 42px;
     height: 42px;
+    object-fit: contain;
+    display: block;
+    background: transparent;
+    padding: 0;
     border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--primary);
-    background: var(--bg-light);
-    flex-shrink: 0;
+    border: 2px solid rgba(255, 107, 53, 0.8);
+    box-sizing: border-box;
 }
 
 .user-profile-summary-meta {
@@ -131,6 +168,8 @@ body {
     flex-direction: column;
     line-height: 1.15;
     min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
 }
 
 .user-profile-summary-name {
@@ -138,7 +177,7 @@ body {
     font-weight: 700;
     color: var(--secondary);
     white-space: nowrap;
-    max-width: 110px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -146,6 +185,9 @@ body {
 .user-profile-summary-posts {
     font-size: 0.7rem;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-add-pet {
@@ -161,6 +203,7 @@ body {
     place-items: center;
     box-shadow: 0 8px 20px rgba(255, 107, 53, 0.28);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
 }
 
 .btn-add-pet:hover {
@@ -356,6 +399,8 @@ body {
     min-height: 2.25rem;
     padding-right: 5.2rem;
     margin-top: 0;
+    min-width: 0;
+    flex: 1;
 }
 
 .pet-author-link {
@@ -365,6 +410,8 @@ body {
     display: flex;
     align-items: center;
     width: max-content;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .pet-author-link:hover .pet-author-name {
@@ -406,6 +453,10 @@ body {
     font-weight: 700;
     color: var(--secondary);
     line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .pet-info-actions {
@@ -1154,6 +1205,90 @@ body {
 }
 
 @media (max-width: 480px) {
+    .container {
+        width: calc(100% - 0.5rem);
+        max-width: none;
+    }
+
+    .app-header {
+        padding: 0.75rem 0;
+    }
+
+    .app-header .container {
+        padding-left: 0;
+        padding-right: 0;
+        gap: 0.35rem;
+    }
+
+    #auth-menu {
+        margin-right: 0;
+        padding-right: 0;
+        margin-left: auto;
+        justify-content: flex-end;
+    }
+
+    #app-logo {
+        font-size: 1.15rem;
+        flex-shrink: 0;
+    }
+
+    .auth-actions {
+        gap: 0.4rem;
+        width: auto;
+        max-width: calc(100% - 85px);
+        margin-left: auto;
+    }
+
+    .btn-add-pet {
+        width: 38px;
+        height: 38px;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .user-profile-summary-link {
+        max-width: min(170px, calc(100vw - 140px));
+        padding: 0.4rem 0.55rem;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        overflow: visible;
+    }
+
+    .user-profile-summary-avatar-wrap {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        min-height: 42px;
+        background: transparent;
+        border-radius: 50%;
+        overflow: visible;
+    }
+
+    .user-profile-summary-avatar {
+        width: 42px;
+        height: 42px;
+        border-width: 2px;
+        border-radius: 50%;
+    }
+
+    .user-profile-summary-name {
+        max-width: 70px;
+    }
+
+    .user-profile-summary-posts {
+        font-size: 0.62rem;
+        max-width: 70px;
+    }
+
+    .pet-author {
+        padding-right: 3.6rem;
+    }
+
+    .pet-author-name {
+        max-width: 120px;
+    }
+
     .filter-modal {
         padding: 0.75rem;
     }
@@ -1170,6 +1305,27 @@ body {
 
     .filter-actions > * {
         width: 100%;
+    }
+}
+
+@media (max-width: 300px) {
+    .user-profile-summary-meta {
+        display: none;
+    }
+
+    .user-profile-summary-link {
+        max-width: 52px;
+        padding: 0.3rem;
+        border-radius: 50%;
+        justify-content: center;
+    }
+
+    .user-profile-summary {
+        width: auto;
+    }
+
+    .auth-actions {
+        max-width: calc(100% - 100px);
     }
 }
 
@@ -1720,29 +1876,5 @@ body {
 .post-menu-item:hover { background: #f6f9fb; }
 
 .profile-action {
-    margin-top: 1.75rem;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.85rem;
-}
-
-.profile-action .btn-submit {
-    min-width: 190px;
-    width: auto;
-    border-radius: 999px;
-    padding: 0.95rem 1.1rem;
-    font-size: 0.96rem;
-    font-weight: 800;
-}
-
-.profile-action .btn-avatar-secondary {
-    background: #edf2f5;
-    color: var(--secondary);
-    border: 1px solid rgba(0, 78, 100, 0.18);
-    box-shadow: none;
-}
-
-.profile-action .btn-avatar-secondary:hover {
-    background: #dde8ec;
+    display: none;
 }

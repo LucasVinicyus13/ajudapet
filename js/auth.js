@@ -78,10 +78,15 @@ function showLoggedInHeader(user) {
     const profileSummary = document.createElement('div');
     profileSummary.className = 'user-profile-summary';
 
+    const avatarWrap = document.createElement('div');
+    avatarWrap.className = 'user-profile-summary-avatar-wrap';
+
     const profileImage = document.createElement('img');
     profileImage.src = getDefaultProfileImagePath();
     profileImage.alt = 'Perfil do usuário';
     profileImage.className = 'user-profile-summary-avatar';
+
+    avatarWrap.appendChild(profileImage);
 
     const summaryMeta = document.createElement('div');
     summaryMeta.className = 'user-profile-summary-meta';
@@ -96,7 +101,7 @@ function showLoggedInHeader(user) {
 
     summaryMeta.appendChild(profileName);
     summaryMeta.appendChild(profilePostsCount);
-    profileSummary.appendChild(profileImage);
+    profileSummary.appendChild(avatarWrap);
     profileSummary.appendChild(summaryMeta);
     profileLink.appendChild(profileSummary);
 
