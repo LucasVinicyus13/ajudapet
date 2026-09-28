@@ -1,4 +1,4 @@
-import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState } from './firebase-config.js';
+import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState, addUserNotification } from './firebase-config.js';
 import { getProfileImagePath } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -340,6 +340,18 @@ async function openUserListModal(uid, mode = 'followers') {
 
             await saveFollowingUsers(filtered, auth.currentUser.uid);
             await syncFollowersForAction(targetUid, auth.currentUser.uid, isNowFollowing);
+
+            if (isNowFollowing && String(targetUid) !== String(auth.currentUser.uid)) {
+                const actorName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Usuário';
+                await addUserNotification(targetUid, {
+                    type: 'follow',
+                    actorUid: auth.currentUser.uid,
+                    actorName,
+                    actorAvatar: auth.currentUser.photoURL || '',
+                    targetUid
+                });
+            }
+
             button.classList.toggle('is-following', isNowFollowing);
             button.textContent = isNowFollowing ? 'Seguindo' : 'Seguir';
             await updateUserStats(uid, Number(postsCountEl?.textContent || 0));

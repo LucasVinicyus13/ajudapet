@@ -1,4 +1,4 @@
-import { auth, db, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState } from './firebase-config.js';
+import { auth, db, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState, addUserNotification } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -24,6 +24,30 @@ function setupLogoutButton() {
     if (!logoutButton) return;
 
     logoutButton.addEventListener('click', handleLogout);
+}
+
+function setupProfileMenuToggle() {
+    const menuButton = document.getElementById('profile-card-menu-button');
+    const menu = document.getElementById('profile-card-menu');
+    if (!menuButton || !menu) return;
+
+    const closeMenu = () => {
+        menu.classList.add('hidden');
+        menuButton.setAttribute('aria-expanded', 'false');
+    };
+
+    menuButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isHidden = menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', !isHidden);
+        menuButton.setAttribute('aria-expanded', String(isHidden));
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!menu.contains(event.target) && !menuButton.contains(event.target)) {
+            closeMenu();
+        }
+    });
 }
 
 function normalizeUserId(value) {
@@ -312,6 +336,18 @@ async function openProfileListModal(uid, mode = 'followers') {
 
             await saveFollowingUsers(filtered, auth.currentUser.uid);
             await syncFollowersForAction(targetUid, auth.currentUser.uid, isNowFollowing);
+
+            if (isNowFollowing && String(targetUid) !== String(auth.currentUser.uid)) {
+                const actorName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Usuário';
+                await addUserNotification(targetUid, {
+                    type: 'follow',
+                    actorUid: auth.currentUser.uid,
+                    actorName,
+                    actorAvatar: auth.currentUser.photoURL || '',
+                    targetUid
+                });
+            }
+
             button.classList.toggle('is-following', isNowFollowing);
             button.textContent = isNowFollowing ? 'Seguindo' : 'Seguir';
             await updateProfileStats(auth.currentUser.uid);
@@ -380,12 +416,16 @@ function setupAvatarUpload() {
 
     avatarButton.addEventListener('click', () => {
         avatarInput.click();
+        const menu = document.getElementById('profile-card-menu');
+        if (menu) menu.classList.add('hidden');
     });
 
     avatarRemoveButton.addEventListener('click', async () => {
         try {
             await clearProfileImage();
             avatar.src = getDefaultProfileImagePath();
+            const menu = document.getElementById('profile-card-menu');
+            if (menu) menu.classList.add('hidden');
         } catch (error) {
             console.error('Erro ao remover avatar:', error);
             alert('Erro ao remover a foto de perfil');
@@ -405,12 +445,14 @@ function setupAvatarUpload() {
         reader.onload = async () => {
             const dataUrl = reader.result;
             avatar.src = dataUrl;
-            
+
             try {
                 const firebaseUrl = await setProfileImage(dataUrl, currentUser.uid);
                 if (firebaseUrl) {
                     avatar.src = firebaseUrl;
                 }
+                const menu = document.getElementById('profile-card-menu');
+                if (menu) menu.classList.add('hidden');
             } catch (error) {
                 console.error('Erro ao salvar avatar:', error);
                 alert('Erro ao salvar a foto de perfil no Firebase. Tente novamente.');
@@ -656,6 +698,7 @@ function openWhatsapp(telefone, nome) {
 window.openWhatsapp = openWhatsapp;
 
 window.addEventListener('DOMContentLoaded', () => {
+    setupProfileMenuToggle();
     setupAvatarUpload();
     setupLogoutButton();
 

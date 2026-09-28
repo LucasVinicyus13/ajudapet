@@ -435,6 +435,26 @@ export async function deleteUserAvatar(uid) {
     }
 }
 
+export async function addUserNotification(targetUid, notification) {
+    if (!targetUid || !notification?.type) {
+        return null;
+    }
+
+    try {
+        const payload = {
+            ...notification,
+            viewed: false,
+            createdAt: serverTimestamp()
+        };
+
+        const ref = await addDoc(collection(db, 'users', targetUid, 'notifications'), payload);
+        return ref.id;
+    } catch (error) {
+        console.error('Erro ao criar notificação do usuário:', error);
+        return null;
+    }
+}
+
 export async function criarDenuncia(dados) {
     try {
         if (!dados.petId || !dados.motivo) {
@@ -487,7 +507,7 @@ export async function togglePetLike(postId) {
     const petRef = doc(db, 'pets', postId);
     const likeRef = doc(db, 'pets', postId, 'likes', userId);
 
-    return runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
         const petSnapshot = await transaction.get(petRef);
         const likeSnapshot = await transaction.get(likeRef);
 
@@ -499,7 +519,7 @@ export async function togglePetLike(postId) {
             transaction.update(petRef, {
                 likesCount: Math.max(0, currentCount - 1)
             });
-            return { liked: false, count: Math.max(0, currentCount - 1) };
+            return { liked: false, count: Math.max(0, currentCount - 1), ownerUid: petSnapshot.data()?.ownerUid || petSnapshot.data()?.ownerId || petSnapshot.data()?.userId || petSnapshot.data()?.uid || null };
         }
 
         transaction.set(likeRef, {
@@ -511,8 +531,25 @@ export async function togglePetLike(postId) {
             likesCount: currentCount + 1
         });
 
-        return { liked: true, count: currentCount + 1 };
+        return { liked: true, count: currentCount + 1, ownerUid: petSnapshot.data()?.ownerUid || petSnapshot.data()?.ownerId || petSnapshot.data()?.userId || petSnapshot.data()?.uid || null, petData: petSnapshot.data() || {} };
     });
+
+    if (result.liked && result.ownerUid && String(result.ownerUid) !== String(userId)) {
+        const actorName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Usuário';
+        const actorAvatar = auth.currentUser?.photoURL || '';
+        await addUserNotification(result.ownerUid, {
+            type: 'like',
+            actorUid: userId,
+            actorName,
+            actorAvatar,
+            postId,
+            postImage: result.petData?.imagem || '',
+            postTitle: result.petData?.nome || 'Seu post',
+            postOwnerUid: result.ownerUid,
+        });
+    }
+
+    return result;
 }
 
 export async function getPetLikeState(postId, userId = auth.currentUser?.uid) {

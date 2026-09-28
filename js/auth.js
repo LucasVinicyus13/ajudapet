@@ -1,5 +1,6 @@
-import { loginUser, registerUser, observeAuthState, auth, listarPets } from './firebase-config.js';
+import { loginUser, registerUser, observeAuthState, auth, listarPets, db, addUserNotification } from './firebase-config.js';
 import { getProfileImagePath, getDefaultProfileImagePath } from './avatar.js';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, getDocs, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 function showMessage(element, message, type = 'error') {
     element.textContent = message;
@@ -51,6 +52,201 @@ async function getUserPostsCount(user) {
     }
 }
 
+function getNotificationBellSvg() {
+    return `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6.5V11a7 7 0 1 0-14 0v4.5L3 18v1h18v-1l-2-2.5Z"/>
+        </svg>
+    `;
+}
+
+async function markNotificationsAsViewed(uid, notifications = []) {
+    if (!uid || !Array.isArray(notifications) || notifications.length === 0) return;
+
+    const unseen = notifications.filter((notification) => !notification.viewed);
+    if (unseen.length === 0) return;
+
+    await Promise.all(
+        unseen.map((notification) => updateDoc(doc(db, 'users', uid, 'notifications', notification.id), {
+            viewed: true,
+            viewedAt: new Date().toISOString()
+        }))
+    );
+}
+
+async function toggleFollowFromNotification(targetUid) {
+    if (!auth.currentUser?.uid || !targetUid || String(targetUid) === String(auth.currentUser.uid)) {
+        return;
+    }
+
+    const currentUserId = auth.currentUser.uid;
+    const currentProfileRef = doc(db, 'users', currentUserId);
+    const currentSnapshot = await getDoc(currentProfileRef);
+    const currentFollowing = currentSnapshot.exists() && Array.isArray(currentSnapshot.data()?.following)
+        ? currentSnapshot.data().following
+        : [];
+    const normalizedFollowing = Array.from(new Set(currentFollowing.map((item) => String(item).trim()).filter(Boolean)));
+    const isNowFollowing = !normalizedFollowing.includes(String(targetUid));
+    const nextFollowing = isNowFollowing
+        ? [...normalizedFollowing, String(targetUid)]
+        : normalizedFollowing.filter((item) => item !== String(targetUid));
+
+    await setDoc(currentProfileRef, {
+        following: nextFollowing,
+        followingUpdatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    const targetProfileRef = doc(db, 'users', targetUid);
+    const targetSnapshot = await getDoc(targetProfileRef);
+    const currentFollowers = targetSnapshot.exists() && Array.isArray(targetSnapshot.data()?.followers)
+        ? targetSnapshot.data().followers
+        : [];
+    const normalizedFollowers = Array.from(new Set(currentFollowers.map((item) => String(item).trim()).filter(Boolean)));
+    const nextFollowers = isNowFollowing
+        ? [...new Set([...normalizedFollowers, String(currentUserId)])]
+        : normalizedFollowers.filter((item) => item !== String(currentUserId));
+
+    await setDoc(targetProfileRef, {
+        followers: nextFollowers,
+        followersUpdatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    if (isNowFollowing) {
+        const actorName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Usuário';
+        await addUserNotification(targetUid, {
+            type: 'follow',
+            actorUid: currentUserId,
+            actorName,
+            actorAvatar: auth.currentUser?.photoURL || '',
+            targetUid,
+        });
+    }
+}
+
+function renderNotificationsList(items, uid) {
+    const popup = document.getElementById('notification-panel');
+    if (!popup) return;
+
+    const list = popup.querySelector('.notification-list');
+    if (!list) return;
+
+    const sorted = [...items].sort((a, b) => {
+        const aTime = a.createdAt?.seconds ? a.createdAt.seconds : 0;
+        const bTime = b.createdAt?.seconds ? b.createdAt.seconds : 0;
+        return bTime - aTime;
+    });
+
+    if (sorted.length === 0) {
+        list.innerHTML = '<div class="notification-empty">Nenhuma notificação ainda.</div>';
+        return;
+    }
+
+    list.innerHTML = sorted.map((notification) => {
+        const isNew = !notification.viewed;
+        const actorImage = notification.actorAvatar || getDefaultProfileImagePath();
+        const actorName = notification.actorName || 'Usuário';
+        const isLike = notification.type === 'like';
+        const postThumb = notification.postImage ? `<img class="notification-post-thumb" src="${notification.postImage}" alt="Post relacionado">` : '';
+        const actionText = isLike
+            ? `<span class="notification-text-main"><strong>${actorName}</strong> curtiu seu post</span>`
+            : `<span class="notification-text-main"><strong>${actorName}</strong> começou a seguir você</span>`;
+
+        const followButton = isLike ? '' : `
+            <button type="button" class="notification-follow-btn" data-follow-notification-id="${notification.actorUid}">
+                Seguir
+            </button>
+        `;
+
+        return `
+            <div class="notification-item ${isNew ? 'is-new' : ''}" data-notification-id="${notification.id || ''}">
+                <div class="notification-user-block">
+                    <img src="${actorImage}" alt="${actorName}" class="notification-user-avatar" loading="lazy">
+                    <div class="notification-copy-wrap">
+                        <div class="notification-copy-row">
+                            ${actionText}
+                            ${postThumb}
+                        </div>
+                        ${followButton}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const followButtons = list.querySelectorAll('.notification-follow-btn');
+    followButtons.forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const targetUid = button.dataset.followNotificationId;
+            if (!targetUid) return;
+            await toggleFollowFromNotification(targetUid);
+            button.textContent = 'Seguindo';
+            button.classList.add('is-following');
+        });
+    });
+
+    const badge = document.querySelector('.notification-badge');
+    if (badge) {
+        const newCount = sorted.filter((notification) => !notification.viewed).length;
+        badge.textContent = newCount > 0 ? String(newCount) : '0';
+        badge.style.display = newCount > 0 ? 'flex' : 'none';
+    }
+}
+
+async function bindNotificationPanel(uid) {
+    const notificationButton = document.getElementById('notification-button');
+    const notificationPanel = document.getElementById('notification-panel');
+    if (!notificationButton || !notificationPanel || !uid) return;
+
+    const notificationsRef = query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'));
+
+    onSnapshot(notificationsRef, async (snapshot) => {
+        const items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+        renderNotificationsList(items, uid);
+
+        const newCount = items.filter((notification) => !notification.viewed).length;
+        const badge = notificationButton.querySelector('.notification-badge');
+        if (badge) {
+            badge.textContent = newCount > 0 ? String(newCount) : '0';
+            badge.style.display = newCount > 0 ? 'flex' : 'none';
+        }
+    });
+
+    notificationButton.addEventListener('click', async () => {
+        const isOpen = !notificationPanel.classList.contains('hidden');
+        if (isOpen) {
+            notificationPanel.classList.add('hidden');
+            return;
+        }
+
+        notificationPanel.classList.remove('hidden');
+
+        const notificationQuery = query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'));
+        const notificationSnapshot = await getDocs(notificationQuery);
+        const items = notificationSnapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        if (items.length > 0) {
+            await markNotificationsAsViewed(uid, items);
+        }
+
+        const badge = notificationButton.querySelector('.notification-badge');
+        if (badge) {
+            badge.textContent = '0';
+            badge.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!notificationPanel.contains(event.target) && !notificationButton.contains(event.target)) {
+            notificationPanel.classList.add('hidden');
+        }
+    });
+}
+
 function showLoggedInHeader(user) {
     const authMenu = document.getElementById('auth-menu');
     if (!authMenu) return;
@@ -68,6 +264,23 @@ function showLoggedInHeader(user) {
             window.openAddPetModal();
         }
     });
+
+    const notificationButton = document.createElement('button');
+    notificationButton.type = 'button';
+    notificationButton.id = 'notification-button';
+    notificationButton.className = 'notification-button';
+    notificationButton.setAttribute('aria-label', 'Abrir notificações');
+    notificationButton.innerHTML = `${getNotificationBellSvg()}<span class="notification-badge">0</span>`;
+
+    const notificationPanel = document.createElement('div');
+    notificationPanel.id = 'notification-panel';
+    notificationPanel.className = 'notification-panel hidden';
+    notificationPanel.innerHTML = `
+        <div class="notification-header">
+            <h3>Notificações</h3>
+        </div>
+        <div class="notification-list"></div>
+    `;
 
     const profileLink = document.createElement('a');
     profileLink.href = getProfilePagePath();
@@ -106,14 +319,17 @@ function showLoggedInHeader(user) {
     profileLink.appendChild(profileSummary);
 
     actions.appendChild(addButton);
+    actions.appendChild(notificationButton);
     actions.appendChild(profileLink);
 
-    setAuthMenuContent([actions]);
+    authMenu.replaceChildren(actions, notificationPanel);
     void loadProfileImage(profileImage, user?.uid);
     void getUserPostsCount(user).then((count) => {
         const label = count === 1 ? '1 post' : `${count} posts`;
         profilePostsCount.textContent = label;
     });
+
+    void bindNotificationPanel(user.uid);
 }
 
 async function loadProfileImage(imageElement, uid) {
