@@ -492,6 +492,7 @@ function renderPetCard(pet, authorName, authorAvatarUrl) {
     const ageDays = computeAgeDaysFromPet(pet);
     const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
     const petIsAdopted = String(pet?.status || '').trim().toLowerCase() === 'adotado';
+    const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
 
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
@@ -523,10 +524,10 @@ function renderPetCard(pet, authorName, authorAvatarUrl) {
             <p class="pet-city">${formatCityWithState(pet)}</p>
             <h3 class="pet-name">${pet.nome}</h3>
             ${categorias ? `<p class="pet-category">${categorias}</p>` : ''}
-            <div class="pet-card-actions">
+            ${isOwnPost ? '' : `<div class="pet-card-actions">
                 ${petIsAdopted ? '' : '<button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>'}
                 <button type="button" class="btn-report" data-pet-report-btn>Denunciar</button>
-            </div>
+            </div>`}
         </div>
     `;
 

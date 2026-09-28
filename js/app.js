@@ -4,7 +4,7 @@
  */
 
 import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
-import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath } from './pet-utils.js';
+import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CATEGORIES = [
@@ -6160,6 +6160,12 @@ async function initApp() {
     updateFilterButtonText();
 
     await initAddPetForm();
+    await new Promise((resolve) => {
+        const unsubscribe = observeAuthState((user) => {
+            unsubscribe();
+            resolve(user);
+        });
+    });
     await loadPets(true);
 }
 
@@ -6289,6 +6295,7 @@ function renderPetCard(pet) {
     const petIsAdopted = isPetAdopted(pet);
     const petId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
     const ownerUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
+    const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
     card.className = 'pet-card';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
@@ -6326,10 +6333,10 @@ function renderPetCard(pet) {
             <p class="pet-city">${formatCityWithState(pet)}</p>
             <h3 class="pet-name">${pet.nome}</h3>
             <p class="pet-category">${categorias}</p>
-            <div class="pet-card-actions">
+            ${isOwnPost ? '' : `<div class="pet-card-actions">
                 ${petIsAdopted ? '' : '<button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>'}
                 <button type="button" class="btn-report" data-pet-report-btn>Denunciar</button>
-            </div>
+            </div>`}
         </div>
     `;
 
@@ -6531,15 +6538,21 @@ function openModal(pet) {
     }
 
     const petIsAdopted = isPetAdopted(pet);
+    const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
     if (modalHelpBtn) {
-        modalHelpBtn.hidden = petIsAdopted;
-        modalHelpBtn.disabled = petIsAdopted;
-        modalHelpBtn.style.display = petIsAdopted ? 'none' : '';
-        modalHelpBtn.setAttribute('aria-hidden', String(petIsAdopted));
+        const shouldHideHelp = petIsAdopted || isOwnPost;
+        modalHelpBtn.hidden = shouldHideHelp;
+        modalHelpBtn.disabled = shouldHideHelp;
+        modalHelpBtn.style.display = shouldHideHelp ? 'none' : '';
+        modalHelpBtn.setAttribute('aria-hidden', String(shouldHideHelp));
     }
 
     const reportButton = document.getElementById('modal-report-btn');
     if (reportButton) {
+        reportButton.hidden = isOwnPost;
+        reportButton.disabled = isOwnPost;
+        reportButton.style.display = isOwnPost ? 'none' : '';
+        reportButton.setAttribute('aria-hidden', String(isOwnPost));
         reportButton.onclick = () => openReportModal(pet);
     }
 
