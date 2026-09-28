@@ -91,6 +91,12 @@ img, svg {
     color: var(--primary);
 }
 
+#app-logo img {
+    width: 1.25em;
+    height: 1.25em;
+    object-fit: contain;
+}
+
 .btn-login {
     text-decoration: none;
     color: var(--secondary);
