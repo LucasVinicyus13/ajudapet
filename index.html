@@ -28,6 +28,7 @@
 
         <div class="feed-toolbar">
             <button type="button" class="btn-filter" id="filter-toggle-button">Filtros</button>
+            <button type="button" class="btn-filter btn-understand" id="understand-open-button">Entenda</button>
         </div>
 
         <!-- Feed de Animais -->
@@ -54,6 +55,65 @@
                 <button type="button" class="btn-filter-primary" id="filter-apply-button">Aplicar</button>
             </div>
         </div>
+    </div>
+
+    <div id="understand-modal" class="filter-modal understand-modal" aria-hidden="true">
+        <section class="filter-modal-card understand-modal-card" role="dialog" aria-modal="true" aria-labelledby="understand-title">
+            <div class="filter-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">Ajuda rápida</p>
+                    <h2 class="filter-modal-title" id="understand-title">Entenda as categorias</h2>
+                </div>
+                <button type="button" class="filter-close" id="understand-close-button" aria-label="Fechar explicações">×</button>
+            </div>
+            <p class="filter-modal-copy" id="understand-copy">Use as categorias para identificar o tipo, porte e fase de vida do animal.</p>
+
+            <div class="understand-pages">
+                <section class="understand-page" id="understand-categories-page" aria-label="Explicação das categorias">
+                    <dl class="understand-list">
+                        <div><dt>Pequeno Porte</dt><dd>Animais de tamanho compacto, que geralmente pesam menos e ocupam menos espaço.</dd></div>
+                        <div><dt>Médio Porte</dt><dd>Animais de tamanho intermediário, entre os de pequeno e grande porte.</dd></div>
+                        <div><dt>Grande Porte</dt><dd>Animais maiores e mais robustos, que precisam de espaço e manejo adequados.</dd></div>
+                        <div><dt>Cachorros</dt><dd>Cães de qualquer porte, idade ou raça.</dd></div>
+                        <div><dt>Gatos</dt><dd>Gatos domésticos de qualquer idade ou característica.</dd></div>
+                        <div><dt>Pássaros</dt><dd>Aves que precisam de cuidados compatíveis com sua espécie e condição.</dd></div>
+                        <div><dt>Répteis &amp; Anfíbios</dt><dd>Animais como tartarugas, lagartos, serpentes, sapos e rãs.</dd></div>
+                        <div><dt>Roedores &amp; Pequenos Mamíferos</dt><dd>Como coelhos, hamsters, porquinhos-da-índia e outros pequenos mamíferos.</dd></div>
+                        <div><dt>Peixes &amp; Aquarismo</dt><dd>Peixes e outros animais mantidos em aquários, com necessidades próprias de água e ambiente.</dd></div>
+                        <div><dt>Animais de Fazenda / Grande Porte Rural</dt><dd>Animais criados em áreas rurais, como cavalos, bois, vacas, cabras e ovelhas.</dd></div>
+                        <div><dt>Exóticos / Silvestres</dt><dd>Espécies não domésticas ou incomuns. O manejo e o resgate devem respeitar a legislação e contar com orientação especializada.</dd></div>
+                        <div><dt>Mamíferos</dt><dd>Animais que, em geral, têm pelos e alimentam os filhotes com leite.</dd></div>
+                        <div><dt>Carnívoros</dt><dd>Animais da ordem dos carnívoros, como cães e gatos.</dd></div>
+                        <div><dt>Filhotes</dt><dd>Animais jovens que ainda estão em fase de crescimento e desenvolvimento.</dd></div>
+                        <div><dt>Adultos</dt><dd>Animais que já passaram da fase de filhote e chegaram à maturidade.</dd></div>
+                        <div><dt>Sênior / Idosos</dt><dd>Animais mais velhos, que podem precisar de atenção e cuidados adaptados à idade.</dd></div>
+                    </dl>
+                </section>
+
+                <section class="understand-page" id="understand-status-page" aria-label="Explicação dos status" hidden>
+                    <div class="understand-status-list">
+                        <article class="understand-status-item">
+                            <h3 class="understand-status-title">Status: Resgate</h3>
+                            <p>O animal precisa ser retirado de uma situação de risco e levado para um local seguro.</p>
+                        </article>
+                        <article class="understand-status-item">
+                            <h3 class="understand-status-title">Status: Urgente</h3>
+                            <p>O animal precisa de ajuda prioritária, como atendimento, abrigo ou cuidados imediatos.</p>
+                        </article>
+                        <article class="understand-status-item">
+                            <h3 class="understand-status-title">Status: Adotado</h3>
+                            <p>O animal já encontrou um lar e não está mais disponível para adoção.</p>
+                        </article>
+                    </div>
+                </section>
+            </div>
+
+            <div class="understand-navigation">
+                <span class="understand-page-count" id="understand-page-count" aria-live="polite">1 de 2</span>
+                <button type="button" class="understand-arrow" id="understand-previous-button" aria-label="Voltar para categorias" title="Voltar para categorias" hidden>←</button>
+                <button type="button" class="understand-arrow" id="understand-next-button" aria-label="Avançar para status" title="Avançar para status">→</button>
+            </div>
+        </section>
     </div>
 
     <div id="pet-modal" class="pet-modal" aria-hidden="true">

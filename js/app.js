@@ -6060,8 +6060,58 @@ async function initApp() {
     filterApplyButton = document.getElementById('filter-apply-button');
     filterClearButton = document.getElementById('filter-clear-button');
     filterCloseButton = document.getElementById('filter-close-button');
+    const understandModal = document.getElementById('understand-modal');
+    const understandOpenButton = document.getElementById('understand-open-button');
+    const understandCloseButton = document.getElementById('understand-close-button');
+    const understandTitle = document.getElementById('understand-title');
+    const understandCopy = document.getElementById('understand-copy');
+    const understandCategoriesPage = document.getElementById('understand-categories-page');
+    const understandStatusPage = document.getElementById('understand-status-page');
+    const understandPageCount = document.getElementById('understand-page-count');
+    const understandPreviousButton = document.getElementById('understand-previous-button');
+    const understandNextButton = document.getElementById('understand-next-button');
     loadingMoreIndicator = document.getElementById('loading-more');
     endOfFeedMessage = document.getElementById('end-of-feed');
+
+    const showUnderstandPage = (page) => {
+        const showCategories = page === 1;
+        if (understandCategoriesPage) understandCategoriesPage.hidden = !showCategories;
+        if (understandStatusPage) understandStatusPage.hidden = showCategories;
+        if (understandPageCount) understandPageCount.textContent = showCategories ? '1 de 2' : '2 de 2';
+        if (understandPreviousButton) understandPreviousButton.hidden = showCategories;
+        if (understandNextButton) understandNextButton.hidden = !showCategories;
+        if (understandTitle) understandTitle.textContent = showCategories ? 'Entenda as categorias' : 'Entenda os status';
+        if (understandCopy) {
+            understandCopy.textContent = showCategories
+                ? 'Use as categorias para identificar o tipo, porte e fase de vida do animal.'
+                : 'O status indica a situação atual do animal e o tipo de ajuda que ele precisa.';
+        }
+        const activePage = showCategories ? understandCategoriesPage : understandStatusPage;
+        if (activePage) activePage.scrollTop = 0;
+    };
+
+    if (understandOpenButton && understandModal) {
+        understandOpenButton.addEventListener('click', () => {
+            showUnderstandPage(1);
+            understandModal.classList.add('visible');
+            understandModal.setAttribute('aria-hidden', 'false');
+        });
+    }
+
+    const closeUnderstandModal = () => {
+        if (!understandModal) return;
+        understandModal.classList.remove('visible');
+        understandModal.setAttribute('aria-hidden', 'true');
+    };
+
+    if (understandCloseButton) understandCloseButton.addEventListener('click', closeUnderstandModal);
+    if (understandNextButton) understandNextButton.addEventListener('click', () => showUnderstandPage(2));
+    if (understandPreviousButton) understandPreviousButton.addEventListener('click', () => showUnderstandPage(1));
+    if (understandModal) {
+        understandModal.addEventListener('click', (event) => {
+            if (event.target === understandModal) closeUnderstandModal();
+        });
+    }
 
     window.addEventListener('scroll', () => {
         if (!hasMorePets || isLoadingPets) return;
