@@ -37,14 +37,16 @@ O projeto busca utilizar a tecnologia como ferramenta de impacto social, aproxim
 
 - ✅ Cadastro de usuários
 - ✅ Login utilizando Firebase Authentication
-- ✅ Publicação de animais
-- ✅ Upload de imagens
-- ✅ Cadastro de informações do animal
-- ✅ Contato direto via WhatsApp
-- ✅ Denúncia de publicações
-- ✅ Listagem de animais
-- ✅ Interface responsiva
-- ✅ Integração com Firebase
+- ✅ Publicação de animais com imagem, localização, categorias e status
+- ✅ Feed com detalhes, curtidas e compartilhamento de posts
+- ✅ Filtros por porte, espécie, categoria geral e fase de vida
+- ✅ Explicações sobre as categorias e os status dos animais
+- ✅ Contato com responsáveis pelo WhatsApp e denúncia de publicações
+- ✅ Perfil próprio para gerenciar posts e marcá-los como adotados
+- ✅ Perfis públicos com posts e contadores de seguidores, seguindo e publicações
+- ✅ Ações para seguir usuários e consultar listas de seguidores e seguindo
+- ✅ Interface responsiva para celulares e computadores
+- ✅ Integração com Firebase Authentication, Firestore e Storage
 
 ---
 
@@ -84,16 +86,13 @@ O projeto busca utilizar a tecnologia como ferramenta de impacto social, aproxim
 
 ```text
 ajudapet/
-│
-├── css/
-├── js/
-├── assets/
-│
-├── login/
-├── cadastro/
-├── pages/
-│
-├── index.html
+├── assets/             # Imagens e recursos visuais
+├── css/style.css       # Estilos do site
+├── docs/               # Documentação complementar
+├── js/                 # Aplicação, autenticação e utilitários
+├── pages/              # Login, cadastro, perfis e posts
+├── index.html          # Página inicial e feed
+├── configurar.html     # Orientações para regras do Firestore
 └── README.md
 ```
 
@@ -113,9 +112,21 @@ Entre na pasta:
 cd ajudapet
 ```
 
-Abra o arquivo **index.html** em seu navegador.
+Inicie um servidor local na raiz do projeto:
 
-Ou utilize a extensão **Live Server** no Visual Studio Code.
+```bash
+python3 -m http.server 8000
+```
+
+Acesse http://localhost:8000 no navegador. Também é possível usar a extensão **Live Server** do Visual Studio Code.
+
+## Testes
+
+Execute os testes dos utilitários com Node.js:
+
+```bash
+node --test js/pet-utils.test.js
+```
 
 ---
 
