@@ -443,12 +443,14 @@ export async function addUserNotification(targetUid, notification) {
     try {
         const payload = {
             ...notification,
+            actorUid: notification.actorUid || auth.currentUser?.uid || null,
+            targetUid: String(notification.targetUid || targetUid),
             viewed: false,
             createdAt: serverTimestamp(),
             createdAtFallback: new Date().toISOString()
         };
 
-        const ref = await addDoc(collection(db, 'users', targetUid, 'notifications'), payload);
+        const ref = await addDoc(collection(db, 'users', String(targetUid), 'notifications'), payload);
         return ref.id;
     } catch (error) {
         console.error('Erro ao criar notificação do usuário:', error);
