@@ -444,7 +444,8 @@ export async function addUserNotification(targetUid, notification) {
         const payload = {
             ...notification,
             viewed: false,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            createdAtFallback: new Date().toISOString()
         };
 
         const ref = await addDoc(collection(db, 'users', targetUid, 'notifications'), payload);

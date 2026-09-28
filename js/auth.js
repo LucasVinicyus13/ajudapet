@@ -318,8 +318,8 @@ function showLoggedInHeader(user) {
     profileSummary.appendChild(summaryMeta);
     profileLink.appendChild(profileSummary);
 
-    actions.appendChild(addButton);
     actions.appendChild(notificationButton);
+    actions.appendChild(addButton);
     actions.appendChild(profileLink);
 
     authMenu.replaceChildren(actions, notificationPanel);
