@@ -605,7 +605,7 @@ async function loadUserPosts(uid) {
         const pets = await listarPets();
         const userPosts = pets.filter((pet) => matchesUserPost(pet, uid, profileEmail, profileEmail));
 
-        updateUserStats(uid, userPosts.length);
+        await updateUserStats(uid, userPosts.length);
         postsContainer.innerHTML = '';
 
         if (!userPosts.length) {
@@ -668,10 +668,15 @@ async function initUserProfile() {
         if (userName) userName.textContent = profile.name;
 
         const profileRef = doc(db, 'users', uid);
-        const snapshot = await getDoc(profileRef);
-        if (snapshot.exists()) {
-            const data = snapshot.data();
-            profileEmail = String(data.email || '');
+        try {
+            const snapshot = await getDoc(profileRef);
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                profileEmail = String(data.email || '');
+            }
+        } catch (error) {
+            profileEmail = '';
+            console.warn('Não foi possível ler o e-mail privado do usuário; posts serão buscados pelo UID:', error);
         }
 
         if (auth.currentUser?.uid) {
