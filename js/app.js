@@ -7102,5 +7102,6 @@ window.openAddPetModal = openAddPetModal;
 window.openAddPetModalForEdit = openAddPetModalWithData;
 window.loadPets = loadPets;
 window.openReportModal = openReportModal;
+window.abrirDetalhes = abrirDetalhes;
 
 window.addEventListener('DOMContentLoaded', initApp);

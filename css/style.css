@@ -1771,6 +1771,11 @@ img, svg {
     gap: 0.7rem;
 }
 
+.profile-adopt-button {
+    width: 100%;
+    margin-top: 0.75rem;
+}
+
 .btn-ajudar-inline {
     margin-top: 0.2rem;
 }
