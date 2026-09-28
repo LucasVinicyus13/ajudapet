@@ -67,10 +67,16 @@ async function markNotificationsAsViewed(uid, notifications = []) {
     if (unseen.length === 0) return;
 
     await Promise.all(
-        unseen.map((notification) => updateDoc(doc(db, 'users', uid, 'notifications', notification.id), {
-            viewed: true,
-            viewedAt: new Date().toISOString()
-        }))
+        unseen.map(async (notification) => {
+            try {
+                await updateDoc(doc(db, 'users', uid, 'notifications', notification.id), {
+                    viewed: true,
+                    viewedAt: new Date().toISOString()
+                });
+            } catch (error) {
+                console.warn('Não foi possível marcar notificação como lida:', error);
+            }
+        })
     );
 }
 
@@ -211,6 +217,14 @@ async function bindNotificationPanel(uid) {
             badge.textContent = newCount > 0 ? String(newCount) : '0';
             badge.style.display = newCount > 0 ? 'flex' : 'none';
         }
+    }, (error) => {
+        console.warn('Não foi possível carregar notificações:', error);
+        renderNotificationsList([], uid);
+        const badge = notificationButton.querySelector('.notification-badge');
+        if (badge) {
+            badge.textContent = '0';
+            badge.style.display = 'none';
+        }
     });
 
     notificationButton.addEventListener('click', async () => {
@@ -222,15 +236,20 @@ async function bindNotificationPanel(uid) {
 
         notificationPanel.classList.remove('hidden');
 
-        const notificationQuery = query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'));
-        const notificationSnapshot = await getDocs(notificationQuery);
-        const items = notificationSnapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data()
-        }));
+        try {
+            const notificationQuery = query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'));
+            const notificationSnapshot = await getDocs(notificationQuery);
+            const items = notificationSnapshot.docs.map((docSnap) => ({
+                id: docSnap.id,
+                ...docSnap.data()
+            }));
 
-        if (items.length > 0) {
-            await markNotificationsAsViewed(uid, items);
+            if (items.length > 0) {
+                await markNotificationsAsViewed(uid, items);
+            }
+        } catch (error) {
+            console.warn('Não foi possível abrir a lista de notificações:', error);
+            renderNotificationsList([], uid);
         }
 
         const badge = notificationButton.querySelector('.notification-badge');

@@ -32,6 +32,19 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isOwner(userId);
       allow delete: if false;
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create: if isSignedIn()
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.targetUid == userId
+          && request.resource.data.type in ['like', 'follow']
+          && request.resource.data.viewed == false
+          && request.resource.data.createdAt is timestamp;
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewed', 'viewedAt']);
+        allow delete: if isOwner(userId);
+      }
     }
 
     match /reports/{reportId} {
