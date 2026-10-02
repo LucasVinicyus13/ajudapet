@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="../assets/images/favicon.png">
     <title>Detalhes do Pet - AjudaPet</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
@@ -180,8 +181,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="module">
-        import { auth, buscarPetPorId, criarDenuncia } from '../js/firebase-config.js';
-        import { buildReportEmailContent, computeAgeDaysFromPet, formatCityWithState, formatCategories, getPetDetailUrl } from '../js/pet-utils.js';
+        import { auth, buscarPetPorId, criarDenuncia, observeAuthState } from '../js/firebase-config.js';
+        import { buildReportEmailContent, computeAgeDaysFromPet, formatCityWithState, formatCategories, getPetDetailUrl, matchesUserPost } from '../js/pet-utils.js';
 
         const EMAILJS_CONFIG = {
             serviceId: 'service_gy5u2oa',
@@ -421,6 +422,8 @@
                 const helpDetailButton = document.getElementById('btn-ajudar-detail');
                 const helpFooterButton = document.getElementById('btn-ajudar-footer');
                 const isPetAdopted = String(pet.status || '').trim().toLowerCase() === 'adotado';
+                const detailActions = document.querySelector('.detail-actions');
+                const footerAction = document.querySelector('.footer-action');
 
                 if (helpDetailButton) {
                     helpDetailButton.hidden = isPetAdopted;
@@ -439,6 +442,19 @@
                 }
 
                 document.getElementById('btn-denunciar-detail').addEventListener('click', () => openDetailReportModal(pet));
+
+                observeAuthState((user) => {
+                    const isOwnPost = matchesUserPost(pet, user?.uid, user?.email);
+                    if (detailActions) {
+                        detailActions.hidden = isOwnPost;
+                        detailActions.style.display = isOwnPost ? 'none' : '';
+                    }
+                    if (footerAction) {
+                        const shouldHideFooter = isOwnPost || isPetAdopted;
+                        footerAction.hidden = shouldHideFooter;
+                        footerAction.style.display = shouldHideFooter ? 'none' : '';
+                    }
+                });
 
                 const detailReportForm = document.getElementById('detail-report-form');
                 if (detailReportForm) {

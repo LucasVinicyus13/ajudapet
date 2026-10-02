@@ -4,7 +4,7 @@
  */
 
 import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
-import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath } from './pet-utils.js';
+import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CATEGORIES = [
@@ -6060,8 +6060,58 @@ async function initApp() {
     filterApplyButton = document.getElementById('filter-apply-button');
     filterClearButton = document.getElementById('filter-clear-button');
     filterCloseButton = document.getElementById('filter-close-button');
+    const understandModal = document.getElementById('understand-modal');
+    const understandOpenButton = document.getElementById('understand-open-button');
+    const understandCloseButton = document.getElementById('understand-close-button');
+    const understandTitle = document.getElementById('understand-title');
+    const understandCopy = document.getElementById('understand-copy');
+    const understandCategoriesPage = document.getElementById('understand-categories-page');
+    const understandStatusPage = document.getElementById('understand-status-page');
+    const understandPageCount = document.getElementById('understand-page-count');
+    const understandPreviousButton = document.getElementById('understand-previous-button');
+    const understandNextButton = document.getElementById('understand-next-button');
     loadingMoreIndicator = document.getElementById('loading-more');
     endOfFeedMessage = document.getElementById('end-of-feed');
+
+    const showUnderstandPage = (page) => {
+        const showCategories = page === 1;
+        if (understandCategoriesPage) understandCategoriesPage.hidden = !showCategories;
+        if (understandStatusPage) understandStatusPage.hidden = showCategories;
+        if (understandPageCount) understandPageCount.textContent = showCategories ? '1 de 2' : '2 de 2';
+        if (understandPreviousButton) understandPreviousButton.hidden = showCategories;
+        if (understandNextButton) understandNextButton.hidden = !showCategories;
+        if (understandTitle) understandTitle.textContent = showCategories ? 'Entenda as categorias' : 'Entenda os status';
+        if (understandCopy) {
+            understandCopy.textContent = showCategories
+                ? 'Use as categorias para identificar o tipo, porte e fase de vida do animal.'
+                : 'O status indica a situação atual do animal e o tipo de ajuda que ele precisa.';
+        }
+        const activePage = showCategories ? understandCategoriesPage : understandStatusPage;
+        if (activePage) activePage.scrollTop = 0;
+    };
+
+    if (understandOpenButton && understandModal) {
+        understandOpenButton.addEventListener('click', () => {
+            showUnderstandPage(1);
+            understandModal.classList.add('visible');
+            understandModal.setAttribute('aria-hidden', 'false');
+        });
+    }
+
+    const closeUnderstandModal = () => {
+        if (!understandModal) return;
+        understandModal.classList.remove('visible');
+        understandModal.setAttribute('aria-hidden', 'true');
+    };
+
+    if (understandCloseButton) understandCloseButton.addEventListener('click', closeUnderstandModal);
+    if (understandNextButton) understandNextButton.addEventListener('click', () => showUnderstandPage(2));
+    if (understandPreviousButton) understandPreviousButton.addEventListener('click', () => showUnderstandPage(1));
+    if (understandModal) {
+        understandModal.addEventListener('click', (event) => {
+            if (event.target === understandModal) closeUnderstandModal();
+        });
+    }
 
     window.addEventListener('scroll', () => {
         if (!hasMorePets || isLoadingPets) return;
@@ -6160,6 +6210,12 @@ async function initApp() {
     updateFilterButtonText();
 
     await initAddPetForm();
+    await new Promise((resolve) => {
+        const unsubscribe = observeAuthState((user) => {
+            unsubscribe();
+            resolve(user);
+        });
+    });
     await loadPets(true);
 }
 
@@ -6289,6 +6345,7 @@ function renderPetCard(pet) {
     const petIsAdopted = isPetAdopted(pet);
     const petId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
     const ownerUid = pet?.ownerUid || pet?.ownerId || pet?.userId || pet?.uid || null;
+    const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
     card.className = 'pet-card';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
     const ageDays = computeAgeDaysFromPet(pet);
@@ -6326,10 +6383,10 @@ function renderPetCard(pet) {
             <p class="pet-city">${formatCityWithState(pet)}</p>
             <h3 class="pet-name">${pet.nome}</h3>
             <p class="pet-category">${categorias}</p>
-            <div class="pet-card-actions">
+            ${isOwnPost ? '' : `<div class="pet-card-actions">
                 ${petIsAdopted ? '' : '<button type="button" class="btn-ajudar btn-ajudar-inline" data-pet-help-btn>AJUDAR</button>'}
                 <button type="button" class="btn-report" data-pet-report-btn>Denunciar</button>
-            </div>
+            </div>`}
         </div>
     `;
 
@@ -6531,15 +6588,21 @@ function openModal(pet) {
     }
 
     const petIsAdopted = isPetAdopted(pet);
+    const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
     if (modalHelpBtn) {
-        modalHelpBtn.hidden = petIsAdopted;
-        modalHelpBtn.disabled = petIsAdopted;
-        modalHelpBtn.style.display = petIsAdopted ? 'none' : '';
-        modalHelpBtn.setAttribute('aria-hidden', String(petIsAdopted));
+        const shouldHideHelp = petIsAdopted || isOwnPost;
+        modalHelpBtn.hidden = shouldHideHelp;
+        modalHelpBtn.disabled = shouldHideHelp;
+        modalHelpBtn.style.display = shouldHideHelp ? 'none' : '';
+        modalHelpBtn.setAttribute('aria-hidden', String(shouldHideHelp));
     }
 
     const reportButton = document.getElementById('modal-report-btn');
     if (reportButton) {
+        reportButton.hidden = isOwnPost;
+        reportButton.disabled = isOwnPost;
+        reportButton.style.display = isOwnPost ? 'none' : '';
+        reportButton.setAttribute('aria-hidden', String(isOwnPost));
         reportButton.onclick = () => openReportModal(pet);
     }
 
@@ -7089,5 +7152,6 @@ window.openAddPetModal = openAddPetModal;
 window.openAddPetModalForEdit = openAddPetModalWithData;
 window.loadPets = loadPets;
 window.openReportModal = openReportModal;
+window.abrirDetalhes = abrirDetalhes;
 
 window.addEventListener('DOMContentLoaded', initApp);

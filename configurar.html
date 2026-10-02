@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
     <title>Configurar Firestore - AjudaPet</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -248,13 +249,20 @@ service cloud.firestore {
         && request.resource.data.cidade != ''
         && request.resource.data.status in ['urgente', 'resgate', 'adotado'];
 
-      allow update: if request.auth != null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
-        && (
-          !('likesCount' in resource.data) && request.resource.data.likesCount == 1 ||
-          request.resource.data.likesCount == resource.data.likesCount + 1 ||
-          request.resource.data.likesCount == resource.data.likesCount - 1
-        );
+            allow update: if request.auth != null && (
+                (
+                    resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                    && request.resource.data.status in ['urgente', 'resgate', 'adotado']
+                ) || (
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
+                    && (
+                        !('likesCount' in resource.data) && request.resource.data.likesCount == 1 ||
+                        request.resource.data.likesCount == resource.data.likesCount + 1 ||
+                        request.resource.data.likesCount == resource.data.likesCount - 1
+                    )
+                )
+            );
 
       allow delete: if request.auth != null
         && (resource.data.ownerUid == request.auth.uid || isAdmin());

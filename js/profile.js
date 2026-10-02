@@ -1,4 +1,4 @@
-import { auth, db, observeAuthState, listarPets, deletarPet, togglePetLike, subscribeToPetLikes, getPetLikeState, addUserNotification } from './firebase-config.js';
+import { auth, db, observeAuthState, listarPets, deletarPet, atualizarStatus, togglePetLike, subscribeToPetLikes, getPetLikeState, addUserNotification } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -497,6 +497,9 @@ function renderPostCard(pet, user) {
     const ownerUid = pet.ownerUid || user?.uid || pet.userId || null;
     const authorName = pet.ownerName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Usuário');
     const isOwner = Boolean(user && (pet.ownerEmail === user.email || pet.ownerUid === user.uid));
+    const currentStatus = String(pet.status || '').trim().toLowerCase();
+    const canMarkAsAdopted = Boolean(user?.uid && pet.ownerUid === user.uid)
+        && ['urgente', 'resgate'].includes(currentStatus);
 
     card.innerHTML = `
         <span class="pet-status status-${pet.status}">${pet.status}</span>
@@ -532,6 +535,7 @@ function renderPostCard(pet, user) {
             <p class="pet-age">${ageText}</p>
             <p class="pet-city">${formatCityWithState(pet)}</p>
             ${categorias ? `<p class="pet-category">${categorias}</p>` : ''}
+            ${canMarkAsAdopted ? '<button type="button" class="btn-filter-primary profile-adopt-button" data-mark-adopted>Marcar como adotado</button>' : ''}
         </div>
     `;
 
@@ -600,6 +604,26 @@ function renderPostCard(pet, user) {
         });
     }
 
+    const markAdoptedButton = card.querySelector('[data-mark-adopted]');
+    if (markAdoptedButton) {
+        markAdoptedButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            markAdoptedButton.disabled = true;
+            markAdoptedButton.textContent = 'Atualizando...';
+
+            try {
+                await atualizarStatus(pet.id, 'adotado');
+                await renderUserPosts(auth.currentUser || user);
+            } catch (error) {
+                console.error('Erro ao marcar o animal como adotado:', error);
+                markAdoptedButton.disabled = false;
+                markAdoptedButton.textContent = 'Marcar como adotado';
+                alert('Não foi possível atualizar o status. Tente novamente.');
+            }
+        });
+    }
+
     try {
         if (isOwner) {
             const toolbar = card.querySelector('.pet-toolbar');
@@ -611,6 +635,11 @@ function renderPostCard(pet, user) {
     } catch (e) {
         // ignore
     }
+
+    card.addEventListener('click', (event) => {
+        if (event.target.closest('button, a')) return;
+        window.abrirDetalhes?.(pet);
+    });
 
     return card;
 }
