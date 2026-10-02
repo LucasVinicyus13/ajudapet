@@ -408,7 +408,8 @@ async function getUserProfileData(uid) {
     if (!safeUid) {
         return {
             name: 'Usuário',
-            avatar: getDefaultProfileImagePath()
+            avatar: getDefaultProfileImagePath(),
+            email: ''
         };
     }
 
@@ -424,12 +425,13 @@ async function getUserProfileData(uid) {
 
         const storedAvatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : null;
         const avatar = storedAvatar || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
-        return { name, avatar };
+        return { name, avatar, email: String(profileData.email || '') };
     } catch (error) {
         console.warn('Não foi possível carregar o perfil do usuário:', error);
         return {
             name: await resolveUserDisplayNameFromPosts(safeUid),
-            avatar: getDefaultProfileImagePath()
+            avatar: getDefaultProfileImagePath(),
+            email: ''
         };
     }
 }
@@ -665,13 +667,7 @@ async function initUserProfile() {
         const profile = await getUserProfileData(uid);
         if (userAvatar) userAvatar.src = profile.avatar;
         if (userName) userName.textContent = profile.name;
-
-        const profileRef = doc(db, 'users', uid);
-        const snapshot = await getDoc(profileRef);
-        if (snapshot.exists()) {
-            const data = snapshot.data();
-            profileEmail = String(data.email || '');
-        }
+        profileEmail = profile.email;
 
         if (auth.currentUser?.uid) {
             await loadFollowingStateFromFirebase(auth.currentUser.uid);
