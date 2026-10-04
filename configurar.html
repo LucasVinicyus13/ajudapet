@@ -217,9 +217,28 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+            allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+            allow update: if request.auth != null && (
+                request.auth.uid == userId || isAdmin() || (
+                    request.auth.uid != userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers', 'followersUpdatedAt'])
+                    && request.resource.data.followers is list
+                    && (
+                        (
+                            request.resource.data.followers.size() == resource.data.get('followers', []).size() + 1
+                            && request.auth.uid in request.resource.data.followers
+                            && request.auth.uid in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('following', [])
+                            && request.resource.data.followers.hasAll(resource.data.get('followers', []))
+                        ) || (
+                            request.resource.data.followers.size() == resource.data.get('followers', []).size() - 1
+                            && request.auth.uid in resource.data.get('followers', [])
+                            && !(request.auth.uid in request.resource.data.followers)
+                            && resource.data.get('followers', []).hasAll(request.resource.data.followers)
+                        )
+                    )
+                )
+            );
       allow delete: if isAdmin();
 
       match /notifications/{notificationId} {

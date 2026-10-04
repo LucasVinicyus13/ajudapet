@@ -45,6 +45,19 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewed', 'viewedAt']);
         allow delete: if isOwner(userId);
       }
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create: if isSignedIn()
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.targetUid == userId
+          && request.resource.data.type in ['like', 'follow']
+          && request.resource.data.viewed == false
+          && request.resource.data.createdAt is timestamp;
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewed', 'viewedAt']);
+        allow delete: if isOwner(userId);
+      }
     }
 
     match /reports/{reportId} {
@@ -111,21 +124,30 @@ service cloud.firestore {
     }
 
     function isValidUserFollowList(data) {
-      return data is list && data.size() >= 0 && data.every((value) => value is string);
+      return data is list;
     }
 
     match /users/{userId} {
       allow read: if true;
 
       allow update: if isSignedIn() && (
-        (
-          userId == request.auth.uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['following', 'followingUpdatedAt']) &&
-          isValidUserFollowList(request.resource.data.following)
-        ) || (
+        userId == request.auth.uid || (
           userId != request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers', 'followersUpdatedAt']) &&
-          isValidUserFollowList(request.resource.data.followers)
+          isValidUserFollowList(request.resource.data.followers) &&
+          (
+            (
+              request.resource.data.followers.size() == resource.data.get('followers', []).size() + 1 &&
+              request.auth.uid in request.resource.data.followers &&
+              request.auth.uid in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('following', []) &&
+              request.resource.data.followers.hasAll(resource.data.get('followers', []))
+            ) || (
+              request.resource.data.followers.size() == resource.data.get('followers', []).size() - 1 &&
+              request.auth.uid in resource.data.get('followers', []) &&
+              !(request.auth.uid in request.resource.data.followers) &&
+              resource.data.get('followers', []).hasAll(request.resource.data.followers)
+            )
+          )
         )
       );
 
@@ -137,6 +159,7 @@ service cloud.firestore {
 ```
 
 Importante:
+- As regras de perfil permitem leitura pública dos documentos `users/{userId}` para exibir nome, avatar e contadores. Não guarde nesses documentos dados privados; Firestore não oferece regras de leitura por campo.
 - O estado de seguidores/seguindo deve ser calculado a partir do Firestore e exibido em tempo real nos textos e contadores.
 - Não use `localStorage` como fonte de verdade para `followers` e `following`.
 - A atualização ocorre ao clicar no botão de seguir/deixar de seguir, e o valor é refletido para todos os usuários que consultam o perfil.
