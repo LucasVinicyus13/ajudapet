@@ -1,9 +1,10 @@
 import { auth, db, observeAuthState, listarPets, deletarPet, atualizarStatus, togglePetLike, subscribeToPetLikes, getPetLikeState, addUserNotification } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
 import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
-import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 let currentUser = null;
+let unsubscribeProfileStats = null;
 
 function redirectToLogin() {
     const loginPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
@@ -233,6 +234,27 @@ async function updateProfileStats(uid, forcePostsCount = null) {
     if (postsCountEl) postsCountEl.textContent = String(postsCount);
 }
 
+function subscribeToProfileFollowStats(uid) {
+    if (!uid) return;
+
+    if (unsubscribeProfileStats) {
+        unsubscribeProfileStats();
+    }
+
+    unsubscribeProfileStats = onSnapshot(doc(db, 'users', uid), (profileSnap) => {
+        const data = profileSnap.exists() ? profileSnap.data() || {} : {};
+        const followersCount = normalizeFollowList(data.followers).length;
+        const followingCount = normalizeFollowList(data.following).length;
+        const followersCountEl = document.getElementById('profile-followers-count');
+        const followingCountEl = document.getElementById('profile-following-count');
+
+        if (followersCountEl) followersCountEl.textContent = String(followersCount);
+        if (followingCountEl) followingCountEl.textContent = String(followingCount);
+    }, (error) => {
+        console.warn('Não foi possível acompanhar os contadores de seguidores/seguindo:', error);
+    });
+}
+
 async function openProfileListModal(uid, mode = 'followers') {
     const modal = document.getElementById('followers-modal');
     const list = document.getElementById('followers-modal-list');
@@ -403,6 +425,7 @@ async function renderProfile(user) {
     }
 
     await updateProfileStats(user.uid);
+    subscribeToProfileFollowStats(user.uid);
     attachProfileStatsHandlers();
 }
 
