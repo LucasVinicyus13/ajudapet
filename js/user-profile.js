@@ -691,6 +691,16 @@ async function initUserProfile() {
                 }
                 await saveFollowingUsers(filtered, auth.currentUser.uid);
                 await syncFollowersForAction(uid, auth.currentUser.uid, isNowFollowing);
+                if (isNowFollowing && String(uid) !== String(auth.currentUser.uid)) {
+                    const actorName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Usuário';
+                    await addUserNotification(uid, {
+                        type: 'follow',
+                        actorUid: auth.currentUser.uid,
+                        actorName,
+                        actorAvatar: auth.currentUser.photoURL || '',
+                        targetUid: uid
+                    });
+                }
                 await updateUserStats(uid, Number(postsCountEl?.textContent || 0));
                 await updateFollowButtonState(uid);
             };
