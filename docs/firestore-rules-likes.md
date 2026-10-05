@@ -72,7 +72,11 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.ownerUid == request.auth.uid;
 
-      allow update: if canEditPet() || (
+      allow update: if (
+        canEditPet()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['likesCount'])
+      ) || (
         isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount']) &&
         (

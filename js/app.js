@@ -3,7 +3,7 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, storeLocalPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
+import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
 import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
@@ -7010,17 +7010,7 @@ async function initAddPetForm() {
             console.error('Erro ao publicar pet:', error);
             const permissionDenied = error && ((error.code && error.code.includes('permission')) || (error.message && error.message.toLowerCase().includes('permission')) || (error.message && error.message.toLowerCase().includes('insufficient permissions')));
             if (permissionDenied) {
-                alert('Permissão negada ao salvar no Firebase. As alterações foram aplicadas localmente.');
-                if (editingPetId) {
-                    storeLocalPet({ id: editingPetId, ...petData });
-                } else {
-                    const tempId = `local-${Date.now()}`;
-                    storeLocalPet({ id: tempId, ...petData });
-                }
-                closeAddPetModal();
-                form.reset();
-                resetCategoryPicker();
-                await loadPets();
+                alert('O Firebase recusou a operação. Verifique se as regras do Firestore foram publicadas e se você tem permissão para alterar este animal. As alterações não foram salvas.');
                 return;
             }
             alert('Não foi possível publicar o animal. Tente novamente.');

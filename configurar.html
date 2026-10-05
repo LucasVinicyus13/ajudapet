@@ -216,6 +216,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function canEditPet() {
+      return isSignedIn() && (
+        resource.data.ownerUid == request.auth.uid || isAdmin()
+      );
+    }
+
     match /users/{userId} {
             allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
@@ -268,19 +274,18 @@ service cloud.firestore {
         && request.resource.data.cidade != ''
         && request.resource.data.status in ['urgente', 'resgate', 'adotado'];
 
-            allow update: if request.auth != null && (
-                (
-                    resource.data.ownerUid == request.auth.uid
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-                    && request.resource.data.status in ['urgente', 'resgate', 'adotado']
-                ) || (
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
-                    && (
-                        !('likesCount' in resource.data) && request.resource.data.likesCount == 1 ||
-                        request.resource.data.likesCount == resource.data.likesCount + 1 ||
-                        request.resource.data.likesCount == resource.data.likesCount - 1
-                    )
-                )
+            allow update: if (
+              canEditPet()
+              && request.resource.data.ownerUid == resource.data.ownerUid
+              && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['likesCount'])
+            ) || (
+              isSignedIn()
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
+              && (
+                (!('likesCount' in resource.data) && request.resource.data.likesCount == 1) ||
+                request.resource.data.likesCount == resource.data.likesCount + 1 ||
+                request.resource.data.likesCount == resource.data.likesCount - 1
+              )
             );
 
       allow delete: if request.auth != null
@@ -359,12 +364,11 @@ service cloud.firestore {
             <span class="step-title">Teste no AjudaPet</span>
             <div class="step-content">
                 <p>1. Recarregue a página do AjudaPet (F5)</p>
-                <p>2. Abra um post de animal</p>
-                <p>3. Clique em "Denunciar post"</p>
-                <p>4. Selecione um motivo e envie</p>
+                <p>2. Edite um animal publicado pela sua conta e confirme que as alterações foram salvas</p>
+                <p>3. Abra um post de outro usuário, clique em "Denunciar post", selecione um motivo e envie</p>
                 <div class="checkbox">
                     <input type="checkbox" id="check6">
-                    <label for="check6">✓ Denúncia funcionando!</label>
+                    <label for="check6">✓ Edição e denúncias funcionando!</label>
                 </div>
             </div>
         </div>
