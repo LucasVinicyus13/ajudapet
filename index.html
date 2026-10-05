@@ -276,13 +276,519 @@
     <footer class="app-footer">
         <div class="container">
             <p>&copy; 2026 AjudaPet. Feito com amor.</p>
+            <p class="legal-notice">Ao utilizar o AjudaPet, você está concordando com os nossos
+                <button type="button" class="legal-link" id="terms-open-button" aria-haspopup="dialog">TERMOS DE USO</button>
+                e
+                <button type="button" class="legal-link" id="privacy-open-button" aria-haspopup="dialog">POLÍTICAS DE PRIVACIDADE</button>.
+            </p>
         </div>
     </footer>
 
-    
+    <div id="terms-modal" class="filter-modal legal-modal" aria-hidden="true">
+        <section class="filter-modal-card legal-modal-card" role="dialog" aria-modal="true" aria-labelledby="terms-title">
+            <div class="filter-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">AjudaPet</p>
+                    <h2 class="filter-modal-title" id="terms-title">Termos de Uso</h2>
+                </div>
+                <button type="button" class="filter-close" data-legal-close aria-label="Fechar termos de uso">×</button>
+            </div>
+            <div class="legal-document" id="terms-document"></div>
+        </section>
+    </div>
+    <pre class="legal-source" id="terms-source" hidden># TERMOS DE USO — AJUDAPET
+
+**Última atualização: 05 de outubro de 2026**
+
+Bem-vindo ao **AjudaPet**, uma plataforma criada com o objetivo de facilitar a divulgação de animais em situação de rua, abandono, risco ou disponíveis para adoção, aproximando pessoas interessadas em ajudar e promovendo a adoção responsável.
+
+Ao acessar, navegar, criar uma conta ou utilizar qualquer funcionalidade do AjudaPet, você declara que leu e concorda com estes Termos de Uso. Caso não concorde com algum dos termos apresentados, recomendamos que não utilize a plataforma.
+
+## 1. Sobre o AjudaPet
+
+O AjudaPet é uma plataforma digital de divulgação e interação entre usuários interessados em ajudar animais.
+
+A plataforma permite, entre outras funcionalidades:
+
+* visualizar publicações de animais;
+* publicar animais que necessitam de ajuda ou estão disponíveis para adoção;
+* informar localização, características e situação do animal;
+* entrar em contato com responsáveis pelas publicações;
+* curtir e compartilhar publicações;
+* seguir outros usuários;
+* consultar perfis públicos;
+* denunciar publicações;
+* atualizar o status de animais publicados, inclusive indicando quando um animal foi adotado.
+
+O AjudaPet atua como uma ferramenta de divulgação e aproximação entre usuários. A plataforma **não realiza diretamente a adoção, o resgate, o transporte, o atendimento veterinário ou a entrega dos animais**.
+
+## 2. Cadastro e conta do usuário
+
+Algumas funcionalidades do AjudaPet dependem da criação de uma conta.
+
+Ao criar uma conta, o usuário se compromete a fornecer informações verdadeiras, completas e atualizadas, bem como a manter a segurança de suas credenciais de acesso.
+
+O usuário é responsável pelas atividades realizadas por meio de sua conta e deve comunicar ao AjudaPet qualquer utilização não autorizada de suas credenciais que venha ao seu conhecimento.
+
+Não é permitido criar contas utilizando a identidade de outra pessoa, informações falsas ou meios destinados a ocultar ou falsificar a identidade do usuário.
+
+## 3. Publicações de animais
+
+Os usuários podem publicar informações sobre animais que necessitem de ajuda, estejam disponíveis para adoção ou se encontrem em outras situações contempladas pela plataforma.
+
+O usuário que realizar uma publicação é responsável pelas informações fornecidas, incluindo:
+
+* fotografias;
+* nome ou identificação do animal;
+* espécie;
+* porte;
+* fase de vida;
+* localização;
+* situação ou categoria;
+* descrição;
+* informações de contato;
+* demais informações inseridas voluntariamente.
+
+O usuário deve garantir que possui autorização para publicar imagens, informações e dados de terceiros eventualmente inseridos na publicação.
+
+As informações divulgadas devem ser verdadeiras e não podem ter como objetivo enganar, prejudicar ou colocar outras pessoas ou animais em situação de risco.
+
+## 4. Responsabilidade pelas adoções e contatos
+
+O AjudaPet apenas facilita a aproximação entre pessoas.
+
+A decisão de realizar uma adoção, resgate, entrega, transporte, doação ou qualquer outro tipo de interação relacionada ao animal é de responsabilidade exclusiva das pessoas envolvidas.
+
+O AjudaPet não garante:
+
+* a veracidade de todas as informações fornecidas pelos usuários;
+* a existência ou localização efetiva de determinado animal;
+* a condição de saúde ou comportamento do animal;
+* a idoneidade dos responsáveis pelas publicações;
+* a realização ou conclusão de uma adoção;
+* o resultado de contatos realizados entre usuários.
+
+Recomendamos que os usuários adotem medidas de segurança antes de realizar encontros, transferências, pagamentos, entregas ou qualquer outra ação decorrente de uma publicação.
+
+## 5. Uso responsável da plataforma
+
+O usuário se compromete a utilizar o AjudaPet de maneira ética, legal e responsável.
+
+É proibido utilizar a plataforma para:
+
+* publicar informações falsas ou enganosas;
+* realizar golpes ou fraudes;
+* praticar assédio, ameaça ou discriminação;
+* publicar conteúdo ilegal;
+* utilizar a plataforma para fins comerciais não autorizados;
+* divulgar dados pessoais de terceiros sem autorização ou base legal adequada;
+* publicar conteúdo que coloque pessoas ou animais em risco;
+* utilizar a plataforma para atividades que violem a legislação brasileira;
+* criar contas falsas ou se passar por outra pessoa;
+* utilizar mecanismos automatizados para prejudicar o funcionamento da plataforma;
+* tentar obter acesso não autorizado a contas, dados ou sistemas;
+* publicar conteúdo ofensivo, abusivo ou incompatível com a finalidade do AjudaPet.
+
+## 6. Imagens e conteúdo publicado
+
+Ao publicar uma imagem, texto ou outra informação no AjudaPet, o usuário declara possuir os direitos ou as autorizações necessárias para realizar essa publicação.
+
+O usuário permanece responsável pelo conteúdo que publica.
+
+O AjudaPet poderá remover, ocultar ou restringir conteúdos que violem estes Termos de Uso, a legislação aplicável ou a finalidade da plataforma.
+
+Sempre que possível, denúncias de conteúdo inadequado poderão ser realizadas por meio dos mecanismos disponibilizados na própria plataforma.
+
+## 7. Denúncias
+
+O AjudaPet disponibiliza mecanismos para que usuários possam denunciar publicações que considerem inadequadas, falsas, abusivas, fraudulentas ou incompatíveis com a finalidade da plataforma.
+
+As denúncias poderão ser analisadas para verificar eventual violação destes Termos de Uso.
+
+O envio de uma denúncia não garante automaticamente a remoção de uma publicação. A medida adotada dependerá da análise da situação e das informações disponíveis.
+
+## 8. Curtidas, seguidores e compartilhamentos
+
+O AjudaPet disponibiliza funcionalidades de interação social, incluindo curtidas, seguidores e compartilhamentos.
+
+Essas funcionalidades devem ser utilizadas de maneira legítima e não podem ser utilizadas para manipulação artificial, assédio, perseguição, fraude ou qualquer outra finalidade ilícita.
+
+## 9. Disponibilidade do serviço
+
+O AjudaPet busca manter a plataforma disponível e funcionando adequadamente, mas não garante que o serviço estará disponível de maneira contínua ou livre de erros.
+
+Podem ocorrer interrupções decorrentes de:
+
+* manutenção;
+* atualizações;
+* falhas técnicas;
+* problemas de conexão;
+* indisponibilidade de serviços de terceiros;
+* situações de força maior;
+* outros eventos fora do controle da plataforma.
+
+## 10. Serviços de terceiros
+
+O funcionamento do AjudaPet utiliza serviços de terceiros, incluindo serviços de autenticação, armazenamento e infraestrutura tecnológica.
+
+Entre eles estão serviços fornecidos pelo **Firebase/Google** e pela **Vercel**.
+
+Esses serviços possuem suas próprias políticas, termos e condições de uso.
+
+O usuário reconhece que determinadas funcionalidades podem depender da disponibilidade desses serviços externos.
+
+## 11. Suspensão ou encerramento de contas
+
+O AjudaPet poderá restringir, suspender ou encerrar contas e publicações que violem estes Termos de Uso ou a legislação aplicável.
+
+Sempre que adequado e possível, poderão ser consideradas a gravidade da violação, o impacto causado e as circunstâncias do caso.
+
+## 12. Propriedade intelectual
+
+A identidade visual, estrutura, código, elementos gráficos e demais componentes desenvolvidos especificamente para o AjudaPet são protegidos pela legislação aplicável, respeitados os direitos de terceiros.
+
+O usuário não recebe, pelo simples uso da plataforma, qualquer direito de propriedade sobre os elementos do AjudaPet.
+
+Conteúdos publicados pelos usuários permanecem sob responsabilidade de seus respectivos autores e titulares de direitos.
+
+## 13. Proteção de dados pessoais
+
+O tratamento de dados pessoais realizado pelo AjudaPet é explicado em sua **Política de Privacidade**.
+
+Ao utilizar a plataforma, o usuário declara estar ciente das práticas de tratamento de dados descritas naquele documento.
+
+O AjudaPet busca tratar dados pessoais de acordo com a legislação brasileira aplicável, especialmente a Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais (LGPD).
+
+## 14. Alterações destes Termos
+
+Estes Termos de Uso poderão ser atualizados para refletir alterações na plataforma, nas funcionalidades disponibilizadas, na legislação ou nas práticas do AjudaPet.
+
+Quando houver alterações relevantes, a versão atualizada será disponibilizada na plataforma.
+
+A continuidade de utilização do AjudaPet após a publicação de alterações poderá representar a ciência dos novos termos, respeitados os direitos assegurados pela legislação aplicável.
+
+## 15. Legislação aplicável
+
+Estes Termos de Uso são regidos pela legislação brasileira.
+
+Eventuais questões relacionadas à utilização da plataforma deverão observar a legislação vigente e os direitos assegurados aos usuários.
+
+## 16. Contato
+
+Para dúvidas, sugestões, denúncias ou solicitações relacionadas ao funcionamento da plataforma, o usuário poderá utilizar os canais de contato disponibilizados pelo AjudaPet.
+
+Para solicitações relacionadas especificamente ao tratamento de dados pessoais, consulte também a Política de Privacidade.
+
+---
+
+**AjudaPet — Adotar é um ato de amor.**
+
+Este documento foi elaborado para apresentar de forma clara as regras de utilização da plataforma e não substitui orientação jurídica profissional.</pre>
+
+    <div id="privacy-modal" class="filter-modal legal-modal" aria-hidden="true">
+        <section class="filter-modal-card legal-modal-card" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+            <div class="filter-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">AjudaPet</p>
+                    <h2 class="filter-modal-title" id="privacy-title">Política de Privacidade</h2>
+                </div>
+                <button type="button" class="filter-close" data-legal-close aria-label="Fechar política de privacidade">×</button>
+            </div>
+            <div class="legal-document" id="privacy-document"></div>
+        </section>
+    </div>
+    <pre class="legal-source" id="privacy-source" hidden># POLÍTICA DE PRIVACIDADE — AJUDAPET
+
+**Última atualização: 05 de outubro de 2026**
+
+O **AjudaPet** valoriza a privacidade de seus usuários e busca tratar os dados pessoais de forma responsável, transparente e compatível com a legislação brasileira.
+
+Esta Política de Privacidade explica quais informações podem ser coletadas, por que são utilizadas, como são armazenadas e quais são os direitos dos usuários em relação aos seus dados pessoais.
+
+Esta política deve ser lida em conjunto com os Termos de Uso do AjudaPet.
+
+## 1. Quem somos
+
+O AjudaPet é uma plataforma web desenvolvida com a finalidade de facilitar a divulgação de animais em situação de risco, abandono ou disponíveis para adoção, promovendo a aproximação entre pessoas interessadas em ajudar.
+
+Para fins da legislação de proteção de dados, especialmente a Lei Geral de Proteção de Dados Pessoais — LGPD, a identificação formal do controlador e seus canais de contato deverão ser informados nesta política de acordo com a organização responsável pelo tratamento dos dados.
+
+**Controlador:** [NOME DO RESPONSÁVEL/ORGANIZAÇÃO]
+
+**E-mail para assuntos de privacidade:** [E-MAIL DE PRIVACIDADE]
+
+**Encarregado pelo tratamento de dados pessoais:** [NOME OU CANAL DO ENCARREGADO, SE APLICÁVEL]
+
+## 2. Quais dados podemos coletar
+
+Dependendo da forma como o usuário utiliza o AjudaPet, poderão ser tratados dados como:
+
+### Dados de cadastro
+
+* nome;
+* endereço de e-mail;
+* senha ou informações relacionadas à autenticação;
+* foto de perfil, quando fornecida;
+* identificadores técnicos associados à conta.
+
+### Dados do perfil
+
+* nome de usuário;
+* foto de perfil;
+* informações disponibilizadas pelo próprio usuário;
+* publicações realizadas;
+* seguidores e usuários seguidos;
+* interações realizadas na plataforma.
+
+### Dados das publicações
+
+Ao cadastrar um animal, o usuário poderá fornecer:
+
+* nome ou identificação do animal;
+* fotografia;
+* espécie;
+* porte;
+* fase de vida;
+* categoria;
+* situação do animal;
+* estado;
+* cidade ou localização informada;
+* descrição;
+* telefone ou outro meio de contato informado;
+* outras informações que o usuário decidir publicar.
+
+### Dados de utilização
+
+Também poderão ser tratados dados técnicos necessários ao funcionamento da plataforma, como informações relacionadas ao acesso, autenticação, funcionamento da aplicação, registros técnicos e identificadores fornecidos pelos serviços utilizados pelo sistema.
+
+## 3. Como os dados são coletados
+
+Os dados podem ser obtidos:
+
+* quando o usuário cria uma conta;
+* quando realiza login;
+* quando edita seu perfil;
+* quando publica um animal;
+* quando interage com outras publicações;
+* quando segue ou deixa de seguir usuários;
+* quando realiza uma denúncia;
+* quando utiliza funcionalidades da plataforma;
+* automaticamente, por meio de tecnologias necessárias ao funcionamento dos serviços utilizados.
+
+## 4. Para que utilizamos os dados
+
+Os dados pessoais podem ser utilizados para as seguintes finalidades:
+
+### Funcionamento da conta
+
+* criar e manter a conta do usuário;
+* realizar autenticação;
+* permitir o acesso às funcionalidades;
+* identificar o usuário dentro da plataforma;
+* permitir o gerenciamento do perfil.
+
+### Funcionamento das publicações
+
+* exibir publicações de animais;
+* identificar o responsável pela publicação;
+* permitir que interessados entrem em contato;
+* possibilitar filtros e pesquisas;
+* permitir atualizações de status;
+* permitir interações com as publicações.
+
+### Recursos sociais
+
+* permitir seguidores e seguindo;
+* registrar curtidas;
+* exibir contadores e interações;
+* permitir compartilhamentos;
+* manter o funcionamento dos perfis públicos.
+
+### Segurança e moderação
+
+* identificar atividades suspeitas;
+* analisar denúncias;
+* prevenir abusos;
+* proteger a plataforma e seus usuários;
+* investigar possíveis violações dos Termos de Uso.
+
+### Cumprimento de obrigações
+
+Os dados também poderão ser tratados quando necessário para cumprir obrigações legais ou regulatórias, exercer direitos em processos judiciais ou administrativos e atender solicitações de autoridades competentes.
+
+## 5. Bases legais
+
+O tratamento de dados pessoais será realizado conforme as hipóteses legais previstas na LGPD e de acordo com a finalidade específica de cada tratamento.
+
+Dependendo do caso, poderão ser utilizadas bases legais como:
+
+* execução de contrato ou procedimentos relacionados ao serviço solicitado pelo usuário;
+* cumprimento de obrigação legal ou regulatória;
+* exercício regular de direitos;
+* legítimo interesse, quando aplicável e respeitados os direitos e liberdades do titular;
+* consentimento, quando necessário.
+
+A utilização de uma base legal específica dependerá da natureza e da finalidade do tratamento realizado.
+
+## 6. Dados publicados pelo próprio usuário
+
+É importante destacar que algumas informações inseridas no AjudaPet são destinadas à divulgação pública.
+
+Por exemplo, uma publicação de animal poderá conter fotografia, cidade, características do animal, descrição e informações de contato fornecidas pelo responsável.
+
+Ao publicar essas informações, o usuário reconhece que elas poderão ser visualizadas por outros usuários e visitantes da plataforma.
+
+**Recomendamos que o usuário não publique informações pessoais excessivas ou desnecessárias em uma publicação.**
+
+O usuário também deve evitar publicar dados pessoais de terceiros sem autorização ou outra base legal adequada.
+
+## 7. Compartilhamento de dados
+
+O AjudaPet poderá utilizar serviços tecnológicos de terceiros necessários para disponibilizar a plataforma.
+
+Entre os serviços utilizados pelo projeto estão:
+
+* **Firebase Authentication**, para autenticação de usuários;
+* **Firebase Firestore**, para armazenamento de informações;
+* **Firebase Storage**, para armazenamento de arquivos e imagens;
+* **Vercel**, para hospedagem e infraestrutura da aplicação;
+* outros serviços que possam ser incorporados futuramente para funcionamento, segurança ou melhoria da plataforma.
+
+Esses fornecedores poderão realizar tratamento de dados de acordo com suas respectivas funções e condições aplicáveis.
+
+O AjudaPet não comercializa dados pessoais dos usuários.
+
+Dados poderão ser compartilhados quando necessário para:
+
+* funcionamento da plataforma;
+* prestação dos serviços tecnológicos utilizados;
+* cumprimento de obrigação legal;
+* atendimento de determinação de autoridade competente;
+* exercício regular de direitos;
+* proteção da segurança dos usuários e da plataforma.
+
+## 8. WhatsApp e contatos externos
+
+Quando o usuário disponibilizar um número de telefone para contato ou utilizar a funcionalidade de contato por WhatsApp, a comunicação poderá ocorrer diretamente por meio do serviço externo correspondente.
+
+A partir do momento em que o usuário deixa a plataforma e utiliza um serviço de terceiros, o tratamento dos dados também estará sujeito às políticas e condições desse terceiro.
+
+O AjudaPet não controla o tratamento realizado diretamente por serviços externos.
+
+## 9. Armazenamento e segurança
+
+Os dados utilizados pelo AjudaPet são armazenados utilizando serviços de infraestrutura tecnológica de terceiros, incluindo recursos do Firebase.
+
+Buscamos adotar medidas técnicas e organizacionais razoáveis para proteger os dados contra acessos não autorizados, perda, alteração, divulgação indevida ou destruição.
+
+Entretanto, nenhum sistema conectado à internet pode garantir segurança absoluta.
+
+O usuário também possui responsabilidade pela segurança de sua conta, devendo manter suas credenciais protegidas e não compartilhá-las com terceiros.
+
+## 10. Retenção dos dados
+
+Os dados pessoais serão mantidos pelo período necessário para cumprir as finalidades para as quais foram coletados.
+
+Alguns dados poderão permanecer armazenados por período adicional quando necessário para:
+
+* cumprimento de obrigações legais;
+* exercício regular de direitos;
+* prevenção de fraudes e abusos;
+* resolução de conflitos;
+* cumprimento de determinações de autoridades competentes.
+
+Quando não houver mais necessidade ou fundamento legal para a manutenção dos dados, eles poderão ser excluídos, anonimizados ou tratados conforme as hipóteses permitidas pela legislação.
+
+## 11. Direitos dos titulares
+
+Nos termos da LGPD, o usuário poderá exercer, conforme aplicável, direitos relacionados aos seus dados pessoais, incluindo:
+
+* confirmação da existência de tratamento;
+* acesso aos dados;
+* correção de dados incompletos, inexatos ou desatualizados;
+* informações sobre o tratamento;
+* informações sobre compartilhamento de dados;
+* anonimização, bloqueio ou eliminação de dados em determinadas situações;
+* portabilidade, quando aplicável;
+* eliminação de dados tratados com base no consentimento, ressalvadas as hipóteses legais de conservação;
+* revogação do consentimento;
+* oposição ao tratamento, quando cabível;
+* revisão de decisões tomadas unicamente com base em tratamento automatizado, quando aplicável.
+
+A ANPD reconhece esses direitos e orienta que os titulares possam exercê-los perante o controlador.
+
+## 12. Como solicitar seus direitos
+
+Para exercer seus direitos ou esclarecer dúvidas sobre o tratamento de dados pessoais, o usuário poderá entrar em contato por meio do canal:
+
+**E-mail:** [E-MAIL DE PRIVACIDADE]
+
+Para proteger a segurança dos dados, poderemos solicitar informações necessárias para confirmar a identidade do solicitante antes de atender determinadas solicitações.
+
+As solicitações serão analisadas de acordo com a legislação aplicável.
+
+## 13. Cookies e tecnologias semelhantes
+
+O AjudaPet poderá utilizar cookies, armazenamento local ou tecnologias semelhantes quando necessários para funcionamento, autenticação, segurança, preferências ou melhoria da experiência do usuário.
+
+Quando forem utilizados cookies que dependam de consentimento, serão observadas as exigências legais aplicáveis.
+
+O usuário poderá controlar determinadas tecnologias por meio das configurações do próprio navegador, embora a desativação de recursos essenciais possa afetar o funcionamento da plataforma.
+
+## 14. Crianças e adolescentes
+
+O AjudaPet não tem como finalidade específica a coleta de dados de crianças.
+
+Caso seja identificado tratamento de dados de crianças ou adolescentes em situação que exija proteção especial, serão observadas as disposições da legislação aplicável e as medidas necessárias para proteção desses usuários.
+
+Recomendamos que menores de idade utilizem a plataforma com orientação e acompanhamento de seus responsáveis quando necessário.
+
+## 15. Transferências internacionais
+
+Alguns dos serviços tecnológicos utilizados pelo AjudaPet podem realizar armazenamento, processamento ou transferência de dados em infraestrutura localizada fora do Brasil.
+
+Quando aplicável, essas operações serão realizadas observando os requisitos estabelecidos pela legislação brasileira de proteção de dados.
+
+A legislação brasileira prevê regras específicas para transferências internacionais de dados pessoais e exige transparência sobre essas operações em determinadas situações.
+
+## 16. Dados de terceiros inseridos nas publicações
+
+O usuário é responsável por garantir que possui autorização ou outra base legal adequada para inserir dados pessoais de terceiros em publicações.
+
+O AjudaPet não recomenda a publicação de documentos, endereços residenciais, informações financeiras, dados de saúde ou outras informações pessoais desnecessárias.
+
+Caso uma publicação contenha dados pessoais indevidos, o titular poderá solicitar sua análise por meio dos canais disponibilizados.
+
+## 17. Alterações desta Política
+
+Esta Política de Privacidade poderá ser atualizada para refletir alterações na plataforma, nos serviços utilizados, na legislação ou nas práticas de tratamento de dados.
+
+A versão mais recente será disponibilizada nesta página.
+
+Quando houver alterações relevantes, poderão ser utilizados mecanismos adicionais de comunicação aos usuários, quando apropriado.
+
+## 18. Contato
+
+Para dúvidas, solicitações ou informações relacionadas à privacidade e proteção de dados pessoais:
+
+**Responsável:** [NOME DO RESPONSÁVEL/ORGANIZAÇÃO]
+
+**E-mail:** [E-MAIL DE PRIVACIDADE]
+
+**Canal de atendimento:** [LINK OU CANAL, SE EXISTIR]
+
+Caso o titular entenda que seus direitos não foram adequadamente atendidos, poderá também buscar os canais oficiais da Autoridade Nacional de Proteção de Dados (ANPD), observados os requisitos aplicáveis.
+
+---
+
+**AjudaPet — Adotar é um ato de amor.**
+
+Esta Política de Privacidade busca explicar de forma clara e transparente as práticas de tratamento de dados do AjudaPet, observando a legislação brasileira aplicável, especialmente a Lei nº 13.709/2018 (LGPD).</pre>
+
     <!-- Firebase SDK (Modular) -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/app.js"></script>
     <script type="module" src="js/auth.js"></script>
+    <script src="js/legal-modals.js"></script>
 </body>
 </html>
