@@ -190,9 +190,15 @@ export async function listarPetsPage(pageSize = 6, startAfterDoc = null, categor
 export async function atualizarStatus(id, novoStatus) {
     try {
         const petRef = doc(db, "pets", id);
-        await updateDoc(petRef, {
+        const dadosAtualizacao = {
             status: novoStatus
-        });
+        };
+
+        if (novoStatus === 'adotado') {
+            dadosAtualizacao.dataAdotado = serverTimestamp();
+        }
+
+        await updateDoc(petRef, dadosAtualizacao);
         console.log(`Status do pet ${id} atualizado para ${novoStatus}`);
     } catch (error) {
         console.error("Erro ao atualizar status:", error);
