@@ -1,6 +1,6 @@
 import { auth, db, observeAuthState, listarPets, deletarPet, atualizarStatus, togglePetLike, subscribeToPetLikes, getPetLikeState, addUserNotification } from './firebase-config.js';
 import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
-import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
+import { formatDateTime, formatPetAge, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
 import { doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 let currentUser = null;
@@ -515,8 +515,7 @@ function renderPostCard(pet, user) {
     card.className = 'pet-card';
     const categorias = formatCategories(pet) || '';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
-    const ageDays = computeAgeDaysFromPet(pet);
-    const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
+    const ageText = formatPetAge(pet);
     const ownerUid = pet.ownerUid || user?.uid || pet.userId || null;
     const authorName = pet.ownerName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Usuário');
     const isOwner = Boolean(user && (pet.ownerEmail === user.email || pet.ownerUid === user.uid));

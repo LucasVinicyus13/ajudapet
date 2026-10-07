@@ -1,6 +1,6 @@
 import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState, addUserNotification } from './firebase-config.js';
 import { getProfileImagePath } from './avatar.js';
-import { formatDateTime, computeAgeDaysFromPet, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId, matchesUserPost } from './pet-utils.js';
+import { formatDateTime, formatPetAge, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const userAvatar = document.getElementById('other-user-avatar');
@@ -491,8 +491,7 @@ function renderPetCard(pet, authorName, authorAvatarUrl) {
     const petLikeId = resolvePetId(pet) || pet.id || pet.petId || pet.docId || pet.uid;
     const categorias = formatCategories(pet) || '';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
-    const ageDays = computeAgeDaysFromPet(pet);
-    const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
+    const ageText = formatPetAge(pet);
     const petIsAdopted = String(pet?.status || '').trim().toLowerCase() === 'adotado';
     const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
 

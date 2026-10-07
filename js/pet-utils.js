@@ -169,6 +169,75 @@ export function computeAgeDaysFromPet(pet) {
   return null;
 }
 
+export function formatPetAge(pet, referenceDate = new Date()) {
+  if (!pet) return 'Não informado';
+
+  const birthdate = typeof pet.dataNascimento === 'string'
+    ? pet.dataNascimento.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    : null;
+
+  let years;
+  let months;
+  let days;
+
+  if (birthdate) {
+    const [, yearText, monthText, dayText] = birthdate;
+    const birthYear = Number(yearText);
+    const birthMonth = Number(monthText);
+    const birthDay = Number(dayText);
+    const referenceYear = referenceDate.getFullYear();
+    const referenceMonth = referenceDate.getMonth() + 1;
+    const referenceDay = referenceDate.getDate();
+    const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
+    const addMonths = (year, month, day, monthsToAdd) => {
+      const date = new Date(year, month - 1 + monthsToAdd, 1);
+      const targetYear = date.getFullYear();
+      const targetMonth = date.getMonth() + 1;
+      return {
+        year: targetYear,
+        month: targetMonth,
+        day: Math.min(day, daysInMonth(targetYear, targetMonth))
+      };
+    };
+    const dateNumber = ({ year, month, day }) => Date.UTC(year, month - 1, day);
+    const reference = { year: referenceYear, month: referenceMonth, day: referenceDay };
+    const birth = { year: birthYear, month: birthMonth, day: birthDay };
+
+    if (dateNumber(birth) <= dateNumber(reference)) {
+      years = referenceYear - birthYear;
+      if (dateNumber(addMonths(birthYear, birthMonth, birthDay, years * 12)) > dateNumber(reference)) {
+        years -= 1;
+      }
+
+      months = (referenceYear - birthYear - years) * 12 + referenceMonth - birthMonth;
+      if (dateNumber(addMonths(birthYear, birthMonth, birthDay, years * 12 + months)) > dateNumber(reference)) {
+        months -= 1;
+      }
+
+      const lastBirthday = addMonths(birthYear, birthMonth, birthDay, years * 12 + months);
+      days = Math.floor((dateNumber(reference) - dateNumber(lastBirthday)) / 86400000);
+    } else {
+      years = 0;
+      months = 0;
+      days = 0;
+    }
+  } else {
+    const ageDays = computeAgeDaysFromPet(pet);
+    if (ageDays === null) return 'Não informado';
+    years = Math.floor(ageDays / 365);
+    months = Math.floor((ageDays - years * 365) / 30);
+    days = ageDays - years * 365 - months * 30;
+  }
+
+  const parts = [];
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'ano' : 'anos'}`);
+  if (years > 0 || months > 0) {
+    parts.push(`${months} ${months === 1 ? 'mês' : 'meses'}`);
+  }
+  parts.push(`${days} ${days === 1 ? 'dia' : 'dias'}`);
+  return parts.join(', ');
+}
+
 export function getCategories(pet) {
   if (!pet) return [];
 

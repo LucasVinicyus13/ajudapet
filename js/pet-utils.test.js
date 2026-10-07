@@ -1,6 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
+import { formatPhoneInput, normalizePhone, isAdminEmail, formatDateTime, formatPetAge, getDataUrlSizeInBytes, shouldCompressImageDataUrl, buildPetShareText, getPetDetailUrl, resolvePetId, buildReportEmailContent, getAppHomeUrl, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
+
+test('formatPetAge omite anos e meses quando o animal ainda não completou um mês', () => {
+  assert.equal(formatPetAge({ dataNascimento: '2024-06-10' }, new Date(2024, 5, 15)), '5 dias');
+});
+
+test('formatPetAge mostra meses e dias sem anos para idade inferior a um ano', () => {
+  assert.equal(formatPetAge({ dataNascimento: '2024-04-10' }, new Date(2024, 5, 15)), '2 meses, 5 dias');
+});
+
+test('formatPetAge inclui zero meses quando o animal tem um ano e ainda não completou outro mês', () => {
+  assert.equal(formatPetAge({ dataNascimento: '2023-06-15' }, new Date(2024, 5, 15)), '1 ano, 0 meses, 0 dias');
+});
+
+test('formatPetAge calcula anos, meses e dias completos', () => {
+  assert.equal(formatPetAge({ dataNascimento: '2022-01-10' }, new Date(2024, 5, 15)), '2 anos, 5 meses, 5 dias');
+});
+
+test('formatPetAge mantém o texto para data de nascimento não informada', () => {
+  assert.equal(formatPetAge({ dataNascimento: 'Não informado', idade: 'Não informado' }), 'Não informado');
+});
 
 test('formatPhoneInput adiciona máscara automaticamente', () => {
   assert.equal(formatPhoneInput('11999999999'), '(11) 99999-9999');

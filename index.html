@@ -102,7 +102,7 @@
                         </article>
                         <article class="understand-status-item">
                             <h3 class="understand-status-title">Status: Adotado</h3>
-                            <p>O animal já encontrou um lar e não está mais disponível para adoção.</p>
+                            <p>O animal já encontrou um lar e não está mais disponível para adoção. A publicação será excluída 7 dias após ser marcada como adotada.</p>
                         </article>
                     </div>
                 </section>
@@ -198,10 +198,18 @@
                     <span>Nome</span>
                     <input id="addpet-name" type="text" placeholder="Nome do animal" required>
                 </label>
+                <div class="unknown-info-option">
+                    <input id="addpet-name-unknown" type="checkbox">
+                    <label for="addpet-name-unknown">Não sei informar.</label>
+                </div>
                 <label class="form-field">
                     <span>Data de nascimento</span>
                     <input id="addpet-birthdate" type="date" placeholder="Data de nascimento" required>
                 </label>
+                <div class="unknown-info-option">
+                    <input id="addpet-birthdate-unknown" type="checkbox">
+                    <label for="addpet-birthdate-unknown">Não sei informar.</label>
+                </div>
                 <label class="form-field">
                     <span>Estado</span>
                     <select id="addpet-state" required>

@@ -182,7 +182,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="module">
         import { auth, buscarPetPorId, criarDenuncia, observeAuthState } from '../js/firebase-config.js';
-        import { buildReportEmailContent, computeAgeDaysFromPet, formatCityWithState, formatCategories, getPetDetailUrl, matchesUserPost } from '../js/pet-utils.js';
+        import { buildReportEmailContent, formatPetAge, formatCityWithState, formatCategories, getPetDetailUrl, matchesUserPost } from '../js/pet-utils.js';
 
         const EMAILJS_CONFIG = {
             serviceId: 'service_gy5u2oa',
@@ -401,8 +401,7 @@
                 petName.textContent = pet.nome || 'Animal';
                 petCity.textContent = formatCityWithState(pet) || 'Localização não informada';
 
-                const ageDays = computeAgeDaysFromPet(pet);
-                petAge.textContent = ageDays !== null ? `${ageDays} dias` : 'Idade não informada';
+                petAge.textContent = formatPetAge(pet);
                 petCategory.textContent = formatCategories(pet) || 'Categoria não informada';
                 petDesc.textContent = pet.descricao || 'Sem descrição disponível.';
 

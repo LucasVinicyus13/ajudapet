@@ -4,7 +4,7 @@
  */
 
 import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
-import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, computeAgeDaysFromPet, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
+import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, formatPetAge, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const CATEGORIES = [
@@ -6348,8 +6348,7 @@ function renderPetCard(pet) {
     const isOwnPost = matchesUserPost(pet, auth.currentUser?.uid, auth.currentUser?.email);
     card.className = 'pet-card';
     const pubDate = formatDateTime(pet.dataCriacao || pet.createdAt || pet.dataPost || pet.timestamp);
-    const ageDays = computeAgeDaysFromPet(pet);
-    const ageText = ageDays !== null ? `${ageDays} dias` : 'Data não disponível';
+    const ageText = formatPetAge(pet);
 
     const profilePagePath = ownerUid ? getUserProfilePagePath(ownerUid) : null;
 
@@ -6750,8 +6749,20 @@ function openAddPetModal() {
     resetCategoryPicker();
     editingPetId = null;
     editingPetImageDataUrl = null;
+    ['name', 'birthdate'].forEach((field) => {
+        const input = document.getElementById(`addpet-${field}`);
+        const unknownCheckbox = document.getElementById(`addpet-${field}-unknown`);
+        if (input) input.disabled = false;
+        if (unknownCheckbox) unknownCheckbox.checked = false;
+    });
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
+}
+
+function syncUnknownInfoField(checkbox, input) {
+    if (!checkbox || !input) return;
+    input.disabled = checkbox.checked;
+    if (checkbox.checked) input.value = '';
 }
 
 function openAddPetModalWithData(pet) {
@@ -6766,16 +6777,30 @@ function openAddPetModalWithData(pet) {
         editingPetImageDataUrl = pet.imagem || null;
 
         const nameInput = document.getElementById('addpet-name');
+        const nameUnknownCheckbox = document.getElementById('addpet-name-unknown');
         const birthInput = document.getElementById('addpet-birthdate');
+        const birthUnknownCheckbox = document.getElementById('addpet-birthdate-unknown');
         const cityInput = document.getElementById('addpet-city');
         const stateInput = document.getElementById('addpet-state');
         const statusInput = document.getElementById('addpet-status');
         const descInput = document.getElementById('addpet-desc');
         const contactInput = document.getElementById('addpet-contact');
 
-        if (nameInput) nameInput.value = pet.nome || '';
+        if (nameUnknownCheckbox) {
+            nameUnknownCheckbox.checked = pet.nome === 'Não informado';
+            syncUnknownInfoField(nameUnknownCheckbox, nameInput);
+        } else if (nameInput) {
+            nameInput.value = pet.nome || '';
+        }
+        if (nameInput && !nameUnknownCheckbox?.checked) nameInput.value = pet.nome || '';
         if (birthInput) {
-            if (pet.dataNascimento) {
+            if (birthUnknownCheckbox) {
+                birthUnknownCheckbox.checked = pet.dataNascimento === 'Não informado';
+                syncUnknownInfoField(birthUnknownCheckbox, birthInput);
+            }
+            if (birthUnknownCheckbox?.checked) {
+                birthInput.value = '';
+            } else if (pet.dataNascimento) {
                 birthInput.value = pet.dataNascimento;
             } else if (typeof pet.idadeDias === 'number') {
                 const d = new Date();
@@ -6819,6 +6844,12 @@ function openAddPetModalWithData(pet) {
     } else {
         editingPetId = null;
         editingPetImageDataUrl = null;
+        ['name', 'birthdate'].forEach((field) => {
+            const input = document.getElementById(`addpet-${field}`);
+            const unknownCheckbox = document.getElementById(`addpet-${field}-unknown`);
+            if (input) input.disabled = false;
+            if (unknownCheckbox) unknownCheckbox.checked = false;
+        });
     }
 
     modal.classList.add('visible');
@@ -6840,6 +6871,10 @@ async function initAddPetForm() {
 
     const cancelButton = document.getElementById('add-pet-cancel');
     const contactInput = document.getElementById('addpet-contact');
+    const nameInput = document.getElementById('addpet-name');
+    const birthInput = document.getElementById('addpet-birthdate');
+    const nameUnknownCheckbox = document.getElementById('addpet-name-unknown');
+    const birthUnknownCheckbox = document.getElementById('addpet-birthdate-unknown');
     const modal = document.getElementById('add-pet-modal');
 
     categorySelect = document.getElementById('addpet-category');
@@ -6851,6 +6886,17 @@ async function initAddPetForm() {
 
     populateCategorySelect();
     syncCategoryPicker();
+
+    [[nameUnknownCheckbox, nameInput], [birthUnknownCheckbox, birthInput]].forEach(([checkbox, input]) => {
+        if (checkbox) {
+            checkbox.addEventListener('change', () => syncUnknownInfoField(checkbox, input));
+            syncUnknownInfoField(checkbox, input);
+        }
+    });
+    form.addEventListener('reset', () => {
+        if (nameInput) nameInput.disabled = false;
+        if (birthInput) birthInput.disabled = false;
+    });
 
     const setCityControl = (selectedCity = '') => {
         const hasState = Boolean(stateSelect.value);
@@ -6906,8 +6952,6 @@ async function initAddPetForm() {
         setSubmitting(true);
 
         const imageInput = document.getElementById('addpet-image');
-        const nameInput = document.getElementById('addpet-name');
-        const birthInput = document.getElementById('addpet-birthdate');
         const cityInput = document.getElementById('addpet-city');
         const stateInput = document.getElementById('addpet-state');
         const statusInput = document.getElementById('addpet-status');
@@ -6939,11 +6983,11 @@ async function initAddPetForm() {
             return;
         }
 
-        const nome = nameInput.value.trim();
-        const birthdateValue = birthInput ? birthInput.value.trim() : '';
-        let idade = '';
+        const nome = nameUnknownCheckbox?.checked ? 'Não informado' : nameInput.value.trim();
+        const birthdateValue = birthUnknownCheckbox?.checked ? '' : birthInput ? birthInput.value.trim() : '';
+        let idade = birthUnknownCheckbox?.checked ? 'Não informado' : '';
         let idadeDias = null;
-        let dataNascimento = '';
+        let dataNascimento = birthUnknownCheckbox?.checked ? 'Não informado' : '';
         if (birthdateValue) {
             dataNascimento = birthdateValue;
             const birthDate = new Date(birthdateValue);
