@@ -47,12 +47,11 @@ async function deletePetRelatedData(petId, pet) {
 }
 
 export const cleanupAdoptedPets = onSchedule({
-    schedule: 'every 24 hours',
+    schedule: 'every 1 hours',
     timeZone: 'America/Sao_Paulo',
     retryCount: 3,
 }, async () => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - RETENTION_LIMIT_DAYS);
+    const cutoff = new Date(Date.now() - RETENTION_LIMIT_DAYS * 24 * 60 * 60 * 1000);
 
     const petsSnapshot = await db.collection('pets')
         .where('status', '==', 'adotado')

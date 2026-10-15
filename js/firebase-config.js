@@ -19,6 +19,7 @@ import {
     updateDoc,
     doc,
     deleteDoc,
+    deleteField,
     serverTimestamp,
     setDoc,
     runTransaction,
@@ -73,7 +74,10 @@ export async function criarPet(dados) {
             ...dados,
             contato: dados.contato || formatPhoneInput(telefoneLimpo),
             telefone: telefoneLimpo,
-            dataCriacao: serverTimestamp()
+            dataCriacao: serverTimestamp(),
+            ...(String(dados.status || '').trim().toLowerCase() === 'adotado'
+                ? { dataAdotado: serverTimestamp() }
+                : {})
         });
 
         console.log("Pet cadastrado com ID: ", docRef.id);
@@ -359,30 +363,34 @@ export function isValidStorageDownloadUrl(url) {
 export { db, auth, storage };
 
 /**
- * Faz upload do avatar do usuário para o Firebase Storage.
+ * Salva o avatar comprimido no documento do usuário no Firestore.
  * @param {string} uid - ID do usuário.
  * @param {Blob} imageBlob - Blob da imagem.
- * @returns {Promise<string>} - URL de download da imagem.
+ * @returns {Promise<string>} - Data URL da imagem.
  */
 export async function uploadUserAvatar(uid, imageBlob) {
     try {
-        const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
-        await uploadBytes(avatarRef, imageBlob);
-        const downloadUrl = await getDownloadURL(avatarRef);
-        await updateUserProfileData(uid, { avatarUrl: downloadUrl });
-        if (auth.currentUser?.uid === uid) {
-            await updateProfile(auth.currentUser, { photoURL: downloadUrl });
-        }
-        console.log("Avatar enviado com sucesso:", downloadUrl);
-        return downloadUrl;
+        const avatarData = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error || new Error('Não foi possível ler a imagem comprimida.'));
+            reader.readAsDataURL(imageBlob);
+        });
+
+        await updateUserProfileData(uid, {
+            avatarData,
+            avatarUrl: ''
+        });
+        console.log("Avatar salvo no Firestore para o usuário:", uid);
+        return avatarData;
     } catch (error) {
-        console.error("Erro ao enviar avatar:", error);
+        console.error("Erro ao salvar avatar no Firestore:", error);
         throw error;
     }
 }
 
 /**
- * Obtém a URL do avatar do usuário do Firebase Storage.
+ * Obtém o avatar do documento do usuário no Firestore, com suporte a URLs antigas do Storage.
  * @param {string} uid - ID do usuário.
  * @returns {Promise<string|null>} - URL do avatar ou null se não existir.
  */
@@ -398,6 +406,11 @@ export async function getUserAvatarUrl(uid) {
         }
 
         const profileData = profileSnap.data();
+        const storedAvatarData = profileData?.avatarData;
+        if (typeof storedAvatarData === 'string' && /^data:image\/(?:jpeg|png|webp);base64,/i.test(storedAvatarData)) {
+            return storedAvatarData;
+        }
+
         const storedAvatarUrl = profileData?.avatarUrl;
 
         if (!storedAvatarUrl) {
@@ -417,26 +430,22 @@ export async function getUserAvatarUrl(uid) {
 }
 
 /**
- * Deleta o avatar do usuário do Firebase Storage.
+ * Remove o avatar do documento do usuário no Firestore.
  * @param {string} uid - ID do usuário.
  * @returns {Promise<void>}
  */
 export async function deleteUserAvatar(uid) {
     try {
-        const avatarRef = ref(storage, `avatars/${uid}/profile-picture`);
-        await deleteObject(avatarRef);
-        await updateUserProfileData(uid, { avatarUrl: '' });
+        await updateUserProfileData(uid, {
+            avatarData: deleteField(),
+            avatarUrl: ''
+        });
         if (auth.currentUser?.uid === uid) {
             await updateProfile(auth.currentUser, { photoURL: null });
         }
-        console.log("Avatar deletado com sucesso");
+        console.log("Avatar removido do Firestore");
     } catch (error) {
-        if (error.code === 'storage/object-not-found') {
-            await updateUserProfileData(uid, { avatarUrl: '' });
-            console.log("Avatar não encontrado no storage");
-            return;
-        }
-        console.error("Erro ao deletar avatar:", error);
+        console.error("Erro ao remover avatar do Firestore:", error);
         throw error;
     }
 }

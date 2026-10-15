@@ -56,8 +56,7 @@ async function cleanupAdoptedPets() {
 
     const db = app.firestore();
     const storage = app.storage();
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - RETENTION_PERIOD_DAYS);
+    const cutoff = new Date(Date.now() - RETENTION_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
     const petsSnapshot = await db.collection('pets')
         .where('status', '==', 'adotado')

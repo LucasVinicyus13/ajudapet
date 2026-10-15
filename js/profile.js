@@ -184,7 +184,7 @@ async function getUserProfileData(uid) {
             }
         }
 
-        const avatar = profileData.avatarUrl || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
+        const avatar = profileData.avatarData || profileData.avatarUrl || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
         return {
             name: name || 'Usuário',
             avatar

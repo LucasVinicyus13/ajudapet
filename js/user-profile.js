@@ -16,6 +16,10 @@ function isSafeAvatarUrl(url) {
         return false;
     }
 
+    if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(url)) {
+        return true;
+    }
+
     try {
         const parsed = new URL(url);
         const isStorageHost = parsed.hostname.includes('firebasestorage.googleapis.com');
@@ -423,7 +427,8 @@ async function getUserProfileData(uid) {
             name = await resolveUserDisplayNameFromPosts(safeUid);
         }
 
-        const storedAvatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : null;
+        const storedAvatarUrl = profileData.avatarData || profileData.avatarUrl;
+        const storedAvatar = storedAvatarUrl && isSafeAvatarUrl(storedAvatarUrl) ? storedAvatarUrl : null;
         const avatar = storedAvatar || await getProfileImagePath(safeUid) || getDefaultProfileImagePath();
         return { name, avatar, email: String(profileData.email || '') };
     } catch (error) {

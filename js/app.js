@@ -6259,6 +6259,10 @@ function isSafeAvatarUrl(url) {
         return false;
     }
 
+    if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(url)) {
+        return true;
+    }
+
     try {
         const parsed = new URL(url);
         const isStorageHost = parsed.hostname.includes('firebasestorage.googleapis.com');
@@ -6295,7 +6299,8 @@ async function getPetAuthorInfo(pet) {
         const profileSnap = await getDoc(profileRef);
         const profileData = profileSnap.exists() ? profileSnap.data() : {};
         const name = resolveDisplayName(profileData, fallbackName || 'Usuário');
-        const avatar = profileData.avatarUrl && isSafeAvatarUrl(profileData.avatarUrl) ? profileData.avatarUrl : fallbackAvatar;
+        const storedAvatar = profileData.avatarData || profileData.avatarUrl;
+        const avatar = storedAvatar && isSafeAvatarUrl(storedAvatar) ? storedAvatar : fallbackAvatar;
 
         return { name, avatar };
     } catch (error) {
