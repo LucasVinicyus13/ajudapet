@@ -232,7 +232,8 @@ img, svg {
     margin-left: auto;
 }
 
-.notification-button {
+.notification-button,
+.home-button {
     position: relative;
     width: 38px;
     height: 38px;
@@ -246,14 +247,20 @@ img, svg {
     transition: transform 0.2s ease;
 }
 
-.notification-button:hover {
+.notification-button:hover,
+.home-button:hover {
     transform: translateY(-1px);
 }
 
-.notification-button svg {
+.notification-button svg,
+.home-button svg {
     width: 18px;
     height: 18px;
     fill: var(--secondary);
+}
+
+.home-button {
+    flex-shrink: 0;
 }
 
 .notification-badge {
@@ -1561,7 +1568,8 @@ img, svg {
     }
 
     .btn-add-pet,
-    .notification-button {
+    .notification-button,
+    .home-button {
         width: 38px;
         height: 38px;
         min-width: 38px;
@@ -1573,7 +1581,8 @@ img, svg {
         flex-shrink: 0;
     }
 
-    .notification-button {
+    .notification-button,
+    .home-button {
         flex-shrink: 0;
     }
 
