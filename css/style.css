@@ -299,6 +299,10 @@ img, svg {
 }
 
 .notification-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
     padding: 0.9rem 1rem 0.7rem;
     border-bottom: 1px solid #eef2f7;
 }
@@ -308,6 +312,36 @@ img, svg {
     font-size: 1rem;
     font-weight: 800;
     color: var(--secondary);
+}
+
+.notification-clear-button {
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.notification-clear-button[hidden] {
+    display: none;
+}
+
+.notification-clear-button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.notification-status {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #bb2525;
+    font-size: 0.75rem;
+}
+
+.notification-status:empty {
+    display: none;
 }
 
 .notification-list {

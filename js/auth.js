@@ -1,6 +1,6 @@
 import { loginUser, registerUser, observeAuthState, auth, listarPets, db, addUserNotification } from './firebase-config.js';
 import { getProfileImagePath, getDefaultProfileImagePath } from './avatar.js';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, getDocs, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, getDocs, updateDoc, setDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 function showMessage(element, message, type = 'error') {
     element.textContent = message;
@@ -142,6 +142,11 @@ function renderNotificationsList(items, uid) {
         return bTime - aTime;
     });
 
+    const clearButton = popup.querySelector('.notification-clear-button');
+    if (clearButton) {
+        clearButton.hidden = sorted.length === 0;
+    }
+
     if (sorted.length === 0) {
         list.innerHTML = '<div class="notification-empty">Nenhuma notificação ainda.</div>';
         return;
@@ -206,6 +211,8 @@ async function bindNotificationPanel(uid) {
     if (!notificationButton || !notificationPanel || !uid) return;
 
     const notificationsRef = query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'));
+    const clearButton = notificationPanel.querySelector('.notification-clear-button');
+    const notificationStatus = notificationPanel.querySelector('.notification-status');
 
     onSnapshot(notificationsRef, async (snapshot) => {
         const items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
@@ -224,6 +231,33 @@ async function bindNotificationPanel(uid) {
         if (badge) {
             badge.textContent = '0';
             badge.style.display = 'none';
+        }
+    });
+
+    clearButton?.addEventListener('click', async () => {
+        if (clearButton.disabled) return;
+
+        clearButton.disabled = true;
+        clearButton.textContent = 'Limpando...';
+        if (notificationStatus) notificationStatus.textContent = '';
+
+        try {
+            const snapshot = await getDocs(notificationsRef);
+            for (let index = 0; index < snapshot.docs.length; index += 500) {
+                const batch = writeBatch(db);
+                snapshot.docs.slice(index, index + 500).forEach((notification) => {
+                    batch.delete(notification.ref);
+                });
+                await batch.commit();
+            }
+        } catch (error) {
+            console.error('Não foi possível excluir todas as notificações:', error);
+            if (notificationStatus) {
+                notificationStatus.textContent = 'Não foi possível limpar as notificações. Tente novamente.';
+            }
+        } finally {
+            clearButton.disabled = false;
+            clearButton.textContent = 'Limpar todas';
         }
     });
 
@@ -297,6 +331,8 @@ function showLoggedInHeader(user) {
     notificationPanel.innerHTML = `
         <div class="notification-header">
             <h3>Notificações</h3>
+            <button type="button" class="notification-clear-button" hidden>Limpar todas</button>
+            <p class="notification-status" role="status" aria-live="polite"></p>
         </div>
         <div class="notification-list"></div>
     `;
