@@ -2450,5 +2450,26 @@ img, svg {
 .post-menu-item:hover { background: #f6f9fb; }
 
 .profile-action {
-    display: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.profile-action .btn-submit {
+    flex: 1 1 180px;
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    color: var(--white);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.profile-action .btn-avatar-primary {
+    background: var(--secondary);
+}
+
+.profile-action .btn-avatar-secondary {
+    background: #bb2525;
 }
