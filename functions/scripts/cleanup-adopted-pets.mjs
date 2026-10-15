@@ -59,7 +59,6 @@ async function cleanupAdoptedPets() {
     const cutoff = new Date(Date.now() - RETENTION_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
     const petsSnapshot = await db.collection('pets')
-        .where('status', '==', 'adotado')
         .where('dataAdotado', '<=', cutoff)
         .get();
 

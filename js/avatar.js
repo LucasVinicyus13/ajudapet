@@ -3,6 +3,10 @@ import { auth } from './firebase-config.js';
 
 const PROFILE_AVATAR_KEY = 'ajudapet-profile-avatar';
 
+function getProfileAvatarKey(uid) {
+    return `${PROFILE_AVATAR_KEY}:${uid}`;
+}
+
 function isSafeAvatarUrl(url) {
     if (!url || typeof url !== 'string') {
         return false;
@@ -79,6 +83,70 @@ export async function compressProfileImage(imageBlob) {
     }
 }
 
+export function setupProfileImagePreview(imageElement) {
+    if (!imageElement || document.getElementById('profile-image-preview')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'profile-image-preview';
+    modal.className = 'profile-image-preview';
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+
+    const dialog = document.createElement('div');
+    dialog.className = 'profile-image-preview-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-label', 'Foto de perfil ampliada');
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'profile-image-preview-close';
+    closeButton.setAttribute('aria-label', 'Fechar foto ampliada');
+    closeButton.textContent = '×';
+
+    const previewImage = document.createElement('img');
+    previewImage.className = 'profile-image-preview-image';
+
+    dialog.append(closeButton, previewImage);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+
+    const closePreview = () => {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        imageElement.focus();
+    };
+
+    const openPreview = () => {
+        previewImage.src = imageElement.currentSrc || imageElement.src;
+        previewImage.alt = imageElement.alt || 'Foto de perfil';
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        closeButton.focus();
+    };
+
+    imageElement.setAttribute('role', 'button');
+    imageElement.setAttribute('tabindex', '0');
+    imageElement.setAttribute('aria-label', 'Ampliar foto de perfil');
+    imageElement.setAttribute('aria-haspopup', 'dialog');
+    imageElement.classList.add('profile-image-preview-trigger');
+    imageElement.addEventListener('click', openPreview);
+    imageElement.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPreview();
+        }
+    });
+
+    closeButton.addEventListener('click', closePreview);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) closePreview();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) closePreview();
+    });
+}
+
 function getDefaultProfileImagePath() {
     return window.location.pathname.includes('/pages/') ? '../assets/images/usuario.png' : './assets/images/usuario.png';
 }
@@ -88,12 +156,13 @@ function getDefaultProfileImagePath() {
  * @returns {Promise<string>} - URL do avatar ou caminho padrão se não existir.
  */
 export async function getProfileImagePath(uid) {
+    const userId = uid || auth.currentUser?.uid;
+
     try {
-        const userId = uid || auth.currentUser?.uid;
         if (userId) {
             const firebaseUrl = await getUserAvatarUrl(userId);
             if (firebaseUrl) {
-                localStorage.setItem(PROFILE_AVATAR_KEY, firebaseUrl);
+                localStorage.setItem(getProfileAvatarKey(userId), firebaseUrl);
                 return firebaseUrl;
             }
 
@@ -106,8 +175,11 @@ export async function getProfileImagePath(uid) {
         console.error("Erro ao obter avatar do Firebase:", error);
     }
 
-    // Fallback para localStorage (compatibilidade com dados antigos)
-    const storedAvatar = localStorage.getItem(PROFILE_AVATAR_KEY);
+    if (!userId || userId !== auth.currentUser?.uid) {
+        return getDefaultProfileImagePath();
+    }
+
+    const storedAvatar = localStorage.getItem(getProfileAvatarKey(userId));
     if (storedAvatar && isSafeAvatarUrl(storedAvatar)) {
         return storedAvatar;
     }
@@ -136,8 +208,8 @@ export async function setProfileImage(dataUrl, uid) {
 
         const firebaseUrl = await uploadUserAvatar(userId, compressedBlob);
         
-        // Manter no localStorage como fallback
-        localStorage.setItem(PROFILE_AVATAR_KEY, firebaseUrl);
+        // Manter no localStorage do próprio usuário como fallback
+        localStorage.setItem(getProfileAvatarKey(userId), firebaseUrl);
         
         return firebaseUrl;
     } catch (error) {
@@ -154,7 +226,6 @@ export async function setProfileImage(dataUrl, uid) {
 export async function clearProfileImage(uid) {
     const userId = uid || auth.currentUser?.uid;
     if (!userId) {
-        localStorage.removeItem(PROFILE_AVATAR_KEY);
         return;
     }
 
@@ -166,8 +237,7 @@ export async function clearProfileImage(uid) {
         throw error;
     }
 
-    // Remover do localStorage
-    localStorage.removeItem(PROFILE_AVATAR_KEY);
+    localStorage.removeItem(getProfileAvatarKey(userId));
 }
 
 export {

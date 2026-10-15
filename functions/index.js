@@ -54,7 +54,6 @@ export const cleanupAdoptedPets = onSchedule({
     const cutoff = new Date(Date.now() - RETENTION_LIMIT_DAYS * 24 * 60 * 60 * 1000);
 
     const petsSnapshot = await db.collection('pets')
-        .where('status', '==', 'adotado')
         .where('dataAdotado', '<=', cutoff)
         .get();
 

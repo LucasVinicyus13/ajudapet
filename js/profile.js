@@ -1,5 +1,5 @@
 import { auth, db, observeAuthState, listarPets, deletarPet, atualizarStatus, togglePetLike, subscribeToPetLikes, getPetLikeState, addUserNotification } from './firebase-config.js';
-import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage } from './avatar.js';
+import { clearProfileImage, getDefaultProfileImagePath, getProfileImagePath, setProfileImage, setupProfileImagePreview } from './avatar.js';
 import { formatDateTime, formatPetAge, formatCityWithState, formatCategories, sharePet, resolvePetId, matchesUserPost, getProfileTargetPagePath } from './pet-utils.js';
 import { doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
@@ -436,6 +436,8 @@ function setupAvatarUpload() {
     const avatarRemoveButton = document.getElementById('profile-avatar-remove-button');
 
     if (!avatar || !avatarInput || !avatarButton || !avatarRemoveButton) return;
+
+    setupProfileImagePreview(avatar);
 
     avatarButton.addEventListener('click', () => {
         avatarInput.click();

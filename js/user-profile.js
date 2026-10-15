@@ -1,5 +1,5 @@
 import { auth, db, listarPets, criarDenuncia, togglePetLike, subscribeToPetLikes, getPetLikeState, observeAuthState, addUserNotification } from './firebase-config.js';
-import { getProfileImagePath } from './avatar.js';
+import { getProfileImagePath, setupProfileImagePreview } from './avatar.js';
 import { formatDateTime, formatPetAge, formatCityWithState, formatCategories, normalizePhone, sharePet, resolvePetId, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
@@ -720,4 +720,7 @@ async function initUserProfile() {
     }
 }
 
-window.addEventListener('DOMContentLoaded', initUserProfile);
+window.addEventListener('DOMContentLoaded', () => {
+    setupProfileImagePreview(userAvatar);
+    initUserProfile();
+});
