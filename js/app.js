@@ -6723,8 +6723,6 @@ async function submitReport(event) {
         const reportId = await criarDenuncia(reportPayload);
         console.log('Denúncia registrada com ID:', reportId);
 
-        const { subject, message } = buildReportEmailContent(petOwner, motivo, currentReportPet.id);
-
         closeReportModal();
 
         try {
@@ -6732,13 +6730,8 @@ async function submitReport(event) {
             console.log('E-mail de denúncia enviado via EmailJS.');
             alert('Denúncia registrada com sucesso! A notificação foi enviada automaticamente.');
         } catch (emailError) {
-            console.warn('EmailJS falhou, usando fallback para mailto:', emailError);
-            const encodedSubject = encodeURIComponent(subject);
-            const encodedBody = encodeURIComponent(message);
-            setTimeout(() => {
-                window.location.href = `mailto:ajudapet.contato@gmail.com?subject=${encodedSubject}&body=${encodedBody}`;
-            }, 500);
-            alert('Denúncia registrada com sucesso! Seu cliente de e-mail foi aberto para enviar a notificação.');
+            console.warn('Não foi possível confirmar o envio da notificação por e-mail:', emailError);
+            alert('Denúncia registrada com sucesso, mas não foi possível confirmar o envio da notificação por e-mail.');
         }
     } catch (error) {
         console.error('❌ Erro completo ao registrar denúncia:', error);
