@@ -80,14 +80,14 @@
                 document.getElementById('allow-post').addEventListener('click', async () => {
                     await atualizarPet(id, { status: pet.status || 'resgate', aprovado: true });
                     alert('Post permitido.');
-                    window.location.reload();
+                    window.location.href = '../index.html';
                 });
 
                 document.getElementById('delete-post').addEventListener('click', async () => {
                     if (!confirm('Deseja excluir este post?')) return;
                     await deletarPet(id);
                     alert('Post excluído.');
-                    redirectHome();
+                    window.location.href = '../index.html';
                 });
             } catch (error) {
                 console.error('Erro ao carregar post:', error);
