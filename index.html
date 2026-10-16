@@ -289,8 +289,37 @@
                 e
                 <button type="button" class="legal-link" id="privacy-open-button" aria-haspopup="dialog">POLÍTICAS DE PRIVACIDADE</button>.
             </p>
+            <p class="feedback-notice">Encontrou algum erro ou tem um elogio para compartilhar? Deixe seu
+                <button type="button" class="legal-link" id="feedback-open-button" aria-haspopup="dialog">feedback</button>!
+            </p>
         </div>
     </footer>
+
+    <div id="feedback-modal" class="filter-modal feedback-modal" aria-hidden="true">
+        <section class="filter-modal-card feedback-modal-card" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+            <div class="filter-modal-header">
+                <div>
+                    <p class="filter-modal-eyebrow">AjudaPet</p>
+                    <h2 class="filter-modal-title" id="feedback-title">Compartilhe seu feedback</h2>
+                </div>
+                <button type="button" class="filter-close" data-feedback-close aria-label="Fechar feedback">×</button>
+            </div>
+            <form id="feedback-form" class="feedback-form">
+                <fieldset class="feedback-type-field">
+                    <legend>Tipo de feedback</legend>
+                    <label><input type="radio" name="feedback_type" value="Erro" required><span>Erro</span></label>
+                    <label><input type="radio" name="feedback_type" value="Elogio" required><span>Elogio</span></label>
+                    <label><input type="radio" name="feedback_type" value="Outro" required><span>Outro</span></label>
+                </fieldset>
+                <label class="feedback-field" for="feedback-message">
+                    <span>O que você gostaria de nos dizer?</span>
+                    <textarea id="feedback-message" name="feedback" rows="5" required></textarea>
+                </label>
+                <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
+                <button type="submit" class="btn-submit btn-submit-full" id="feedback-submit-button">Confirmar</button>
+            </form>
+        </section>
+    </div>
 
     <div id="terms-modal" class="filter-modal legal-modal" aria-hidden="true">
         <section class="filter-modal-card legal-modal-card" role="dialog" aria-modal="true" aria-labelledby="terms-title">

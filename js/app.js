@@ -35,6 +35,7 @@ const FALLBACK_IMAGE = './assets/images/placeholder.svg';
 const EMAILJS_CONFIG = {
     serviceId: 'service_gy5u2oa',
     templateId: 'template_mfg3oh5',
+    feedbackTemplateId: 'template_ttjghsp',
     publicKey: '9QiT5PgUyYcIT_J7V'
 };
 
@@ -47,12 +48,12 @@ function buildReportEmailContent(petOwner, motivo, petId) {
     return { subject, message };
 }
 
-function isEmailJsConfigured() {
+function isEmailJsConfigured(templateId = EMAILJS_CONFIG.templateId) {
     return typeof window.emailjs !== 'undefined'
         && EMAILJS_CONFIG.serviceId
-        && EMAILJS_CONFIG.templateId
+        && templateId
         && EMAILJS_CONFIG.publicKey
-        && EMAILJS_CONFIG.templateId !== 'template_xxxxx'
+        && templateId !== 'template_xxxxx'
         && EMAILJS_CONFIG.publicKey !== 'YOUR_PUBLIC_KEY';
 }
 
@@ -76,6 +77,29 @@ async function sendReportEmail(reportPayload, petOwner, motivo) {
         reporterName: reportPayload.reporterName || '',
         reporterEmail: reportPayload.reporterEmail || '',
         petUrl: `${window.location.origin}/pages/verificar-post.html?id=${reportPayload.petId}`
+    });
+}
+
+async function sendFeedbackEmail(feedback, feedbackType) {
+    if (!isEmailJsConfigured(EMAILJS_CONFIG.feedbackTemplateId)) {
+        throw new Error('EmailJS não está configurado. Defina templateId e publicKey no app.js.');
+    }
+
+    const user = auth.currentUser;
+    const userName = user?.displayName || user?.email?.split('@')[0] || 'Visitante não identificado';
+    const userEmail = user?.email || 'Não informado (usuário não logado)';
+
+    if (typeof window.emailjs?.init === 'function') {
+        window.emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+    }
+
+    return window.emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.feedbackTemplateId, {
+        subject: `Novo feedback (${feedbackType}) recebido pelo AjudaPet`,
+        message: `Novo feedback recebido pelo AjudaPet.\n\nTipo: ${feedbackType}\nNome: ${userName}\nE-mail: ${userEmail}\n\nMensagem:\n${feedback}`,
+        feedback,
+        feedback_type: feedbackType,
+        user_name: userName,
+        user_email: userEmail
     });
 }
 
@@ -6112,6 +6136,83 @@ async function initApp() {
             if (event.target === understandModal) closeUnderstandModal();
         });
     }
+
+    const feedbackModal = document.getElementById('feedback-modal');
+    const feedbackOpenButton = document.getElementById('feedback-open-button');
+    const feedbackForm = document.getElementById('feedback-form');
+    const feedbackMessage = document.getElementById('feedback-message');
+    const feedbackStatus = document.getElementById('feedback-status');
+    const feedbackSubmitButton = document.getElementById('feedback-submit-button');
+    const closeFeedbackModal = () => {
+        if (!feedbackModal) return;
+        feedbackModal.classList.remove('visible');
+        feedbackModal.setAttribute('aria-hidden', 'true');
+    };
+
+    if (feedbackOpenButton && feedbackModal) {
+        feedbackOpenButton.addEventListener('click', () => {
+            if (!auth.currentUser?.uid) {
+                alert('Você precisa entrar na sua conta para enviar um feedback.');
+                return;
+            }
+            if (feedbackStatus) feedbackStatus.textContent = '';
+            feedbackModal.classList.add('visible');
+            feedbackModal.setAttribute('aria-hidden', 'false');
+            feedbackMessage?.focus();
+        });
+    }
+
+    feedbackModal?.querySelectorAll('[data-feedback-close]').forEach((button) => {
+        button.addEventListener('click', closeFeedbackModal);
+    });
+    feedbackModal?.addEventListener('click', (event) => {
+        if (event.target === feedbackModal) closeFeedbackModal();
+    });
+    feedbackForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!auth.currentUser?.uid) {
+            closeFeedbackModal();
+            alert('Sua sessão expirou. Entre na sua conta para enviar um feedback.');
+            return;
+        }
+        const feedback = feedbackMessage?.value.trim() || '';
+        const feedbackType = feedbackForm.querySelector('input[name="feedback_type"]:checked')?.value || '';
+        if (!feedbackType) {
+            feedbackForm.querySelector('input[name="feedback_type"]')?.focus();
+            return;
+        }
+        if (!feedback) {
+            feedbackMessage?.focus();
+            return;
+        }
+
+        if (feedbackSubmitButton) {
+            feedbackSubmitButton.disabled = true;
+            feedbackSubmitButton.classList.add('loading');
+        }
+        if (feedbackStatus) {
+            feedbackStatus.textContent = 'Enviando seu feedback...';
+            feedbackStatus.classList.remove('feedback-status-error');
+        }
+
+        try {
+            await sendFeedbackEmail(feedback, feedbackType);
+            feedbackForm.reset();
+            closeFeedbackModal();
+            alert('Obrigado! Seu feedback foi enviado.');
+        } catch (error) {
+            console.error('Não foi possível enviar o feedback por e-mail:', error);
+            if (feedbackStatus) {
+                feedbackStatus.textContent = 'Não foi possível enviar seu feedback. Tente novamente.';
+                feedbackStatus.classList.add('feedback-status-error');
+            }
+        } finally {
+            if (feedbackSubmitButton) {
+                feedbackSubmitButton.disabled = false;
+                feedbackSubmitButton.classList.remove('loading');
+            }
+        }
+    });
 
     window.addEventListener('scroll', () => {
         if (!hasMorePets || isLoadingPets) return;
