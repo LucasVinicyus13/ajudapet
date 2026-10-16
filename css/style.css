@@ -1332,6 +1332,12 @@ img, svg {
     resize: vertical;
 }
 
+.input-error {
+    color: #b42318;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
 .unknown-info-option {
     display: flex;
     align-items: center;

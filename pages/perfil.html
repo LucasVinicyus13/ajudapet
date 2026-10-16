@@ -138,7 +138,8 @@
                 </div>
                 <label class="form-field">
                     <span>Data de nascimento</span>
-                    <input id="addpet-birthdate" type="date" placeholder="Data de nascimento" required>
+                    <input id="addpet-birthdate" type="date" max="9999-12-31" placeholder="Data de nascimento" required>
+                    <span id="addpet-birthdate-error" class="input-error" role="alert" hidden>A data de nascimento não pode ser posterior à data atual.</span>
                 </label>
                 <div class="unknown-info-option">
                     <input id="addpet-birthdate-unknown" type="checkbox">

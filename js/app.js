@@ -6854,6 +6854,7 @@ function openAddPetModal() {
         if (input) input.disabled = false;
         if (unknownCheckbox) unknownCheckbox.checked = false;
     });
+    updateBirthdateValidation();
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
 }
@@ -6862,6 +6863,44 @@ function syncUnknownInfoField(checkbox, input) {
     if (!checkbox || !input) return;
     input.disabled = checkbox.checked;
     if (checkbox.checked) input.value = '';
+}
+
+function getTodayDateInputValue() {
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${today.getFullYear()}-${month}-${day}`;
+}
+
+function isBirthdateInFuture() {
+    const birthInput = document.getElementById('addpet-birthdate');
+    return Boolean(birthInput?.value && birthInput.value > getTodayDateInputValue());
+}
+
+function hasBirthdateYearWithInvalidLength() {
+    const birthInput = document.getElementById('addpet-birthdate');
+    if (!birthInput?.value) return false;
+    const year = birthInput.value.split('-')[0];
+    return year.length !== 4;
+}
+
+function updateBirthdateValidation() {
+    const birthInput = document.getElementById('addpet-birthdate');
+    const birthError = document.getElementById('addpet-birthdate-error');
+    const submitButton = document.querySelector('#add-pet-form button[type="submit"]');
+    if (!birthInput || !submitButton) return;
+
+    const hasInvalidYear = hasBirthdateYearWithInvalidLength();
+    const isFutureDate = isBirthdateInFuture();
+    const hasInvalidDate = hasInvalidYear || isFutureDate;
+    birthInput.setAttribute('aria-invalid', String(hasInvalidDate));
+    if (birthError) {
+        birthError.textContent = hasInvalidYear
+            ? 'O ano deve conter exatamente 4 dígitos.'
+            : 'A data de nascimento não pode ser posterior à data atual.';
+        birthError.hidden = !hasInvalidDate;
+    }
+    submitButton.disabled = hasInvalidDate || isSubmittingPet;
 }
 
 function openAddPetModalWithData(pet) {
@@ -6951,6 +6990,7 @@ function openAddPetModalWithData(pet) {
         });
     }
 
+    updateBirthdateValidation();
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
     const nameInput = document.getElementById('addpet-name');
@@ -6995,7 +7035,17 @@ async function initAddPetForm() {
     form.addEventListener('reset', () => {
         if (nameInput) nameInput.disabled = false;
         if (birthInput) birthInput.disabled = false;
+        setTimeout(updateBirthdateValidation, 0);
     });
+
+    if (birthInput) {
+        birthInput.addEventListener('input', updateBirthdateValidation);
+        birthInput.addEventListener('change', updateBirthdateValidation);
+    }
+    if (birthUnknownCheckbox) {
+        birthUnknownCheckbox.addEventListener('change', updateBirthdateValidation);
+    }
+    updateBirthdateValidation();
 
     const setCityControl = (selectedCity = '') => {
         const hasState = Boolean(stateSelect.value);
@@ -7024,6 +7074,7 @@ async function initAddPetForm() {
             closeAddPetModal();
             resetCategoryPicker();
             form.reset();
+            updateBirthdateValidation();
         });
     }
 
@@ -7038,10 +7089,16 @@ async function initAddPetForm() {
         const submitButtonText = submitButton ? submitButton.textContent : null;
         const setSubmitting = (submitting) => {
             if (!submitButton) return;
-            submitButton.disabled = submitting;
+            submitButton.disabled = submitting || isBirthdateInFuture();
             submitButton.classList.toggle('loading', submitting);
             submitButton.textContent = submitting ? 'Enviando...' : submitButtonText;
         };
+
+        if (hasBirthdateYearWithInvalidLength() || isBirthdateInFuture()) {
+            updateBirthdateValidation();
+            birthInput?.focus();
+            return;
+        }
 
         if (isSubmittingPet || (submitButton && submitButton.disabled)) {
             return;
