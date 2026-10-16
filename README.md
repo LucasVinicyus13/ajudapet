@@ -42,6 +42,7 @@ O projeto busca utilizar a tecnologia como ferramenta de impacto social, aproxim
 - ✅ Filtros por porte, espécie, categoria geral e fase de vida
 - ✅ Explicações sobre as categorias e os status dos animais
 - ✅ Contato com responsáveis pelo WhatsApp e denúncia de publicações
+- ✅ Envio de feedback por usuários autenticados, com categoria (erro, elogio ou outro) e notificação por e-mail
 - ✅ Perfil próprio para gerenciar posts e marcá-los como adotados
 - ✅ Perfis públicos com posts e contadores de seguidores, seguindo e publicações
 - ✅ Ações para seguir usuários e consultar listas de seguidores e seguindo
@@ -58,7 +59,12 @@ O projeto busca utilizar a tecnologia como ferramenta de impacto social, aproxim
 - Firebase Authentication
 - Firebase Firestore
 - Firebase Storage
+- EmailJS para envio de denúncias e feedbacks por e-mail
 - Vercel
+
+## Feedback
+
+Usuários autenticados podem enviar feedback pelo link no rodapé da página inicial. É necessário selecionar uma categoria — **Erro**, **Elogio** ou **Outro** — e escrever uma mensagem. O e-mail enviado inclui a categoria, o nome e o e-mail da conta, além da mensagem.
 
 ---
 
