@@ -3,7 +3,7 @@
  * Responsável pela renderização do feed e interações do usuário.
  */
 
-import { listarPets, listarPetsPage, criarPet, criarDenuncia, auth, atualizarPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
+import { listarPets, listarPetsPage, criarPet, criarDenuncia, criarFeedback, auth, atualizarPet, removeLocalPet, togglePetLike, subscribeToPetLikes, getPetLikeState, db, observeAuthState } from './firebase-config.js';
 import { compressImageDataUrl, getDataUrlSizeInBytes, formatPhoneInput, normalizePhone, formatDateTime, formatPetAge, formatCityWithState, getPetDetailUrl, buildPetShareText, sharePet, resolvePetId, getProfileTargetPagePath, matchesUserPost } from './pet-utils.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
@@ -80,7 +80,7 @@ async function sendReportEmail(reportPayload, petOwner, motivo) {
     });
 }
 
-async function sendFeedbackEmail(feedback, feedbackType) {
+async function sendFeedbackEmail(feedback, feedbackType, feedbackStoryUrl) {
     if (!isEmailJsConfigured(EMAILJS_CONFIG.feedbackTemplateId)) {
         throw new Error('EmailJS não está configurado. Defina templateId e publicKey no app.js.');
     }
@@ -95,11 +95,12 @@ async function sendFeedbackEmail(feedback, feedbackType) {
 
     return window.emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.feedbackTemplateId, {
         subject: `Novo feedback (${feedbackType}) recebido pelo AjudaPet`,
-        message: `Novo feedback recebido pelo AjudaPet.\n\nTipo: ${feedbackType}\nNome: ${userName}\nE-mail: ${userEmail}\n\nMensagem:\n${feedback}`,
+        message: `Novo feedback recebido pelo AjudaPet.\n\nTipo: ${feedbackType}\nNome: ${userName}\nE-mail: ${userEmail}\n\nMensagem:\n${feedback}\n\nLink para divulgação no Instagram:\n${feedbackStoryUrl}`,
         feedback,
         feedback_type: feedbackType,
         user_name: userName,
-        user_email: userEmail
+        user_email: userEmail,
+        feedback_story_url: feedbackStoryUrl
     });
 }
 
@@ -6195,22 +6196,47 @@ async function initApp() {
             feedbackStatus.classList.remove('feedback-status-error');
         }
 
+        const user = auth.currentUser;
+        let feedbackId;
         try {
-            await sendFeedbackEmail(feedback, feedbackType);
-            feedbackForm.reset();
-            closeFeedbackModal();
-            alert('Obrigado! Seu feedback foi enviado.');
+            feedbackId = await criarFeedback({
+                displayName: user.displayName || '',
+                email: user.email || '',
+                message: feedback,
+                uid: user.uid
+            });
         } catch (error) {
-            console.error('Não foi possível enviar o feedback por e-mail:', error);
+            console.error('Não foi possível salvar o feedback no Firestore:', error);
             if (feedbackStatus) {
-                feedbackStatus.textContent = 'Não foi possível enviar seu feedback. Tente novamente.';
+                feedbackStatus.textContent = 'Não foi possível salvar seu feedback. Tente novamente.';
                 feedbackStatus.classList.add('feedback-status-error');
             }
-        } finally {
             if (feedbackSubmitButton) {
                 feedbackSubmitButton.disabled = false;
                 feedbackSubmitButton.classList.remove('loading');
             }
+            return;
+        }
+
+        let emailNotificationSent = true;
+        try {
+            const storyUrl = new URL('./feedback-story.html', window.location.href);
+            storyUrl.searchParams.set('uid', user.uid);
+            storyUrl.searchParams.set('feedbackId', feedbackId);
+            await sendFeedbackEmail(feedback, feedbackType, storyUrl.href);
+        } catch (error) {
+            emailNotificationSent = false;
+            console.error('Não foi possível enviar a notificação do feedback por e-mail:', error);
+        }
+
+        feedbackForm.reset();
+        closeFeedbackModal();
+        alert(emailNotificationSent
+            ? 'Obrigado! Seu feedback foi enviado.'
+            : 'Seu feedback foi salvo, mas não foi possível enviar a notificação por e-mail.');
+        if (feedbackSubmitButton) {
+            feedbackSubmitButton.disabled = false;
+            feedbackSubmitButton.classList.remove('loading');
         }
     });
 

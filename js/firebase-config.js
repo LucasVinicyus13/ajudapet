@@ -23,6 +23,7 @@ import {
     serverTimestamp,
     setDoc,
     runTransaction,
+    writeBatch,
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
@@ -493,6 +494,35 @@ export async function criarDenuncia(dados) {
         return docRef.id;
     } catch (error) {
         console.error('Erro ao registrar denúncia:', error);
+        throw error;
+    }
+}
+
+export async function criarFeedback({ displayName, email, message, uid }) {
+    try {
+        if (!uid || !message) {
+            throw new Error('uid e message são campos obrigatórios no feedback');
+        }
+
+        const feedbackRef = doc(collection(db, 'feedbacks'));
+        const feedbackData = {
+            displayName: displayName || '',
+            email: email || '',
+            message,
+            uid
+        };
+        const batch = writeBatch(db);
+        batch.set(feedbackRef, feedbackData);
+        batch.set(doc(db, 'feedbackShares', feedbackRef.id), {
+            displayName: feedbackData.displayName,
+            message: feedbackData.message,
+            uid: feedbackData.uid
+        });
+        await batch.commit();
+        console.log('Feedback criado com sucesso:', feedbackRef.id);
+        return feedbackRef.id;
+    } catch (error) {
+        console.error('Erro ao registrar feedback:', error);
         throw error;
     }
 }

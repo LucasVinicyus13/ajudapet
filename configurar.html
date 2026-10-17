@@ -310,6 +310,30 @@ service cloud.firestore {
       allow update: if request.auth != null && isAdmin();
       allow delete: if request.auth != null && isAdmin();
     }
+
+    match /feedbacks/{feedbackId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'message', 'uid'])
+        && request.resource.data.keys().hasAll(['displayName', 'email', 'message', 'uid'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.displayName is string
+        && request.resource.data.email is string
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0;
+      allow read, update, delete: if false;
+    }
+
+    match /feedbackShares/{feedbackId} {
+      allow get: if true;
+      allow list, update, delete: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['displayName', 'message', 'uid'])
+        && request.resource.data.keys().hasAll(['displayName', 'message', 'uid'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.displayName is string
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0;
+    }
   }
 }
                 </div>
@@ -366,9 +390,10 @@ service cloud.firestore {
                 <p>1. Recarregue a página do AjudaPet (F5)</p>
                 <p>2. Edite um animal publicado pela sua conta e confirme que as alterações foram salvas</p>
                 <p>3. Abra um post de outro usuário, clique em "Denunciar post", selecione um motivo e envie</p>
+                <p>4. Envie um feedback com sua conta e confirme que ele foi salvo</p>
                 <div class="checkbox">
                     <input type="checkbox" id="check6">
-                    <label for="check6">✓ Edição e denúncias funcionando!</label>
+                    <label for="check6">✓ Edição, denúncias e feedback funcionando!</label>
                 </div>
             </div>
         </div>

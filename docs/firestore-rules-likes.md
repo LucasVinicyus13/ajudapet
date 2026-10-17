@@ -2,6 +2,38 @@
 
 Cole este conteúdo no Firebase Console > Firestore Database > Regras para garantir que cada usuário só possa curtir um post uma vez e que a contagem só possa variar de 1 em 1.
 
+## Regra adicional para feedbacks
+
+Adicione este bloco dentro de `match /databases/{database}/documents`, junto às demais regras. Ele permite que usuários autenticados criem feedbacks apenas para o próprio `uid`, com os quatro campos usados pela aplicação, sem permitir leitura, alteração ou exclusão:
+
+```javascript
+match /feedbacks/{feedbackId} {
+  allow create: if request.auth != null
+    && request.resource.data.keys().hasOnly(['displayName', 'email', 'message', 'uid'])
+    && request.resource.data.keys().hasAll(['displayName', 'email', 'message', 'uid'])
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.displayName is string
+    && request.resource.data.email is string
+    && request.resource.data.message is string
+    && request.resource.data.message.size() > 0;
+  allow read, update, delete: if false;
+}
+
+match /feedbackShares/{feedbackId} {
+  allow get: if true;
+  allow list, update, delete: if false;
+  allow create: if request.auth != null
+    && request.resource.data.keys().hasOnly(['displayName', 'message', 'uid'])
+    && request.resource.data.keys().hasAll(['displayName', 'message', 'uid'])
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.displayName is string
+    && request.resource.data.message is string
+    && request.resource.data.message.size() > 0;
+}
+```
+
+`feedbackShares` contém somente os dados preparados para divulgação. A leitura pública é limitada à consulta de um documento por ID; listagem, alterações e exclusões são bloqueadas. Publique as regras no Firebase Console para que a alteração entre em vigor. As permissões de regras correspondentes no Firestore são aditivas: verifique também se não existe outra regra ampla que conceda leitura ou escrita.
+
 ```javascript
 rules_version = '2';
 service cloud.firestore {
