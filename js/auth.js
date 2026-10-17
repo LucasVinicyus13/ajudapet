@@ -93,67 +93,96 @@ async function markNotificationsAsViewed(uid, notifications = []) {
     );
 }
 
-async function toggleFollowFromNotification(targetUid) {
-    if (!auth.currentUser?.uid || !targetUid || String(targetUid) === String(auth.currentUser.uid)) {
-        return;
+async function followFromNotification(targetUid) {
+    const currentUser = auth.currentUser;
+    const normalizedTargetUid = String(targetUid || '').trim();
+    if (!currentUser?.uid || !normalizedTargetUid || normalizedTargetUid === String(currentUser.uid)) {
+        return false;
     }
 
-    const currentUserId = auth.currentUser.uid;
+    const currentUserId = currentUser.uid;
     const currentProfileRef = doc(db, 'users', currentUserId);
-    const currentSnapshot = await getDoc(currentProfileRef);
+    const targetProfileRef = doc(db, 'users', normalizedTargetUid);
+    const [currentSnapshot, targetSnapshot] = await Promise.all([
+        getDoc(currentProfileRef),
+        getDoc(targetProfileRef)
+    ]);
     const currentFollowing = currentSnapshot.exists() && Array.isArray(currentSnapshot.data()?.following)
         ? currentSnapshot.data().following
         : [];
     const normalizedFollowing = Array.from(new Set(currentFollowing.map((item) => String(item).trim()).filter(Boolean)));
-    const isNowFollowing = !normalizedFollowing.includes(String(targetUid));
-    const nextFollowing = isNowFollowing
-        ? [...normalizedFollowing, String(targetUid)]
-        : normalizedFollowing.filter((item) => item !== String(targetUid));
+    if (normalizedFollowing.includes(normalizedTargetUid)) {
+        return true;
+    }
 
-    await setDoc(currentProfileRef, {
-        following: nextFollowing,
-        followingUpdatedAt: new Date().toISOString()
-    }, { merge: true });
-
-    const targetProfileRef = doc(db, 'users', targetUid);
-    const targetSnapshot = await getDoc(targetProfileRef);
+    const nextFollowing = [...normalizedFollowing, normalizedTargetUid];
     const currentFollowers = targetSnapshot.exists() && Array.isArray(targetSnapshot.data()?.followers)
         ? targetSnapshot.data().followers
         : [];
     const normalizedFollowers = Array.from(new Set(currentFollowers.map((item) => String(item).trim()).filter(Boolean)));
-    const nextFollowers = isNowFollowing
-        ? [...new Set([...normalizedFollowers, String(currentUserId)])]
-        : normalizedFollowers.filter((item) => item !== String(currentUserId));
+    const nextFollowers = [...new Set([...normalizedFollowers, String(currentUserId)])];
+    const batch = writeBatch(db);
 
-    await setDoc(targetProfileRef, {
+    batch.set(currentProfileRef, {
+        following: nextFollowing,
+        followingUpdatedAt: new Date().toISOString()
+    }, { merge: true });
+    batch.set(targetProfileRef, {
         followers: nextFollowers,
         followersUpdatedAt: new Date().toISOString()
     }, { merge: true });
+    await batch.commit();
 
-    if (isNowFollowing) {
-        const actorName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Usuário';
-        await addUserNotification(targetUid, {
-            type: 'follow',
-            actorUid: currentUserId,
-            actorName,
-            actorAvatar: auth.currentUser?.photoURL || '',
-            targetUid,
-        });
-    }
+    const actorName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuário';
+    await addUserNotification(normalizedTargetUid, {
+        type: 'follow',
+        actorUid: currentUserId,
+        actorName,
+        actorAvatar: currentUser.photoURL || '',
+        targetUid: normalizedTargetUid,
+    });
+    return true;
 }
 
-function renderNotificationsList(items, uid) {
+let notificationRenderVersion = 0;
+
+async function renderNotificationsList(items, uid) {
     const popup = document.getElementById('notification-panel');
     if (!popup) return;
 
     const list = popup.querySelector('.notification-list');
     if (!list) return;
 
+    const renderVersion = ++notificationRenderVersion;
     const sorted = [...items].sort((a, b) => {
         const aTime = a.createdAt?.seconds ? a.createdAt.seconds : 0;
         const bTime = b.createdAt?.seconds ? b.createdAt.seconds : 0;
         return bTime - aTime;
     });
+    const followedUserIds = new Set();
+    const followNotifications = sorted.filter((notification) => notification.type === 'follow' && notification.actorUid);
+    const notificationStatus = popup.querySelector('.notification-status');
+    let followStateAvailable = true;
+
+    if (followNotifications.length > 0) {
+        try {
+            const currentProfile = await getDoc(doc(db, 'users', uid));
+            const following = currentProfile.exists() && Array.isArray(currentProfile.data()?.following)
+                ? currentProfile.data().following
+                : [];
+            following.forEach((userId) => followedUserIds.add(String(userId).trim()));
+        } catch (error) {
+            console.error('Não foi possível verificar quem você está seguindo:', error);
+            followStateAvailable = false;
+        }
+    }
+
+    if (renderVersion !== notificationRenderVersion) return;
+    if (notificationStatus) {
+        notificationStatus.textContent = followStateAvailable
+            ? ''
+            : 'Não foi possível verificar seus seguidos. Tente atualizar a página.';
+    }
 
     const clearButton = popup.querySelector('.notification-clear-button');
     if (clearButton) {
@@ -170,16 +199,22 @@ function renderNotificationsList(items, uid) {
         const actorImage = notification.actorAvatar || getDefaultProfileImagePath();
         const actorName = notification.actorName || 'Usuário';
         const isLike = notification.type === 'like';
+        const isFollow = notification.type === 'follow';
         const postThumb = notification.postImage ? `<img class="notification-post-thumb" src="${notification.postImage}" alt="Post relacionado">` : '';
         const actionText = isLike
             ? `<span class="notification-text-main"><strong>${actorName}</strong> curtiu seu post</span>`
             : `<span class="notification-text-main"><strong>${actorName}</strong> começou a seguir você</span>`;
-
-        const followButton = isLike ? '' : `
-            <button type="button" class="notification-follow-btn" data-follow-notification-id="${notification.actorUid}">
-                Seguir
-            </button>
-        `;
+        const alreadyFollowing = followedUserIds.has(String(notification.actorUid || '').trim());
+        const canFollow = followStateAvailable && isFollow && notification.actorUid
+            && String(notification.actorUid) !== String(uid);
+        const followButton = canFollow ? `
+            <button
+                type="button"
+                class="notification-follow-btn ${alreadyFollowing ? 'is-following' : ''}"
+                data-follow-notification-id="${notification.actorUid}"
+                ${alreadyFollowing ? 'disabled' : ''}
+            >${alreadyFollowing ? 'Seguindo' : 'Seguir'}</button>
+        ` : '';
 
         return `
             <div class="notification-item ${isNew ? 'is-new' : ''}" data-notification-id="${notification.id || ''}">
@@ -203,10 +238,25 @@ function renderNotificationsList(items, uid) {
             event.preventDefault();
             event.stopPropagation();
             const targetUid = button.dataset.followNotificationId;
-            if (!targetUid) return;
-            await toggleFollowFromNotification(targetUid);
-            button.textContent = 'Seguindo';
-            button.classList.add('is-following');
+            if (!targetUid || button.disabled) return;
+
+            button.disabled = true;
+            if (notificationStatus) notificationStatus.textContent = '';
+            try {
+                const isFollowing = await followFromNotification(targetUid);
+                if (isFollowing) {
+                    button.textContent = 'Seguindo';
+                    button.classList.add('is-following');
+                } else {
+                    button.disabled = false;
+                }
+            } catch (error) {
+                console.error('Não foi possível seguir o usuário pela notificação:', error);
+                button.disabled = false;
+                if (notificationStatus) {
+                    notificationStatus.textContent = 'Não foi possível seguir este usuário. Tente novamente.';
+                }
+            }
         });
     });
 
@@ -229,7 +279,7 @@ async function bindNotificationPanel(uid) {
 
     onSnapshot(notificationsRef, async (snapshot) => {
         const items = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-        renderNotificationsList(items, uid);
+        void renderNotificationsList(items, uid);
 
         const newCount = items.filter((notification) => !notification.viewed).length;
         const badge = notificationButton.querySelector('.notification-badge');
@@ -239,7 +289,7 @@ async function bindNotificationPanel(uid) {
         }
     }, (error) => {
         console.warn('Não foi possível carregar notificações:', error);
-        renderNotificationsList([], uid);
+        void renderNotificationsList([], uid);
         const badge = notificationButton.querySelector('.notification-badge');
         if (badge) {
             badge.textContent = '0';
@@ -296,7 +346,7 @@ async function bindNotificationPanel(uid) {
             }
         } catch (error) {
             console.warn('Não foi possível abrir a lista de notificações:', error);
-            renderNotificationsList([], uid);
+            void renderNotificationsList([], uid);
         }
 
         const badge = notificationButton.querySelector('.notification-badge');
