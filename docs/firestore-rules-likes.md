@@ -198,4 +198,5 @@ Importante:
 - As regras de perfil permitem leitura pública dos documentos `users/{userId}` para exibir nome, avatar e contadores. Não guarde nesses documentos dados privados; Firestore não oferece regras de leitura por campo.
 - O estado de seguidores/seguindo deve ser calculado a partir do Firestore e exibido em tempo real nos textos e contadores.
 - Não use `localStorage` como fonte de verdade para `followers` e `following`.
+- Ao seguir alguém, grave primeiro o campo `following` no documento do usuário conectado e só depois atualize `followers` no perfil-alvo. Não agrupe essas gravações em um batch: a regra do perfil-alvo consulta o `following` já persistido com `get()`.
 - A atualização ocorre ao clicar no botão de seguir/deixar de seguir, e o valor é refletido para todos os usuários que consultam o perfil.
