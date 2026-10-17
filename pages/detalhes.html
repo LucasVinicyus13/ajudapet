@@ -241,7 +241,18 @@
             petStatus.className = `pet-status status-${status || 'urgente'} detail-status`;
         }
 
+        function requireLoginForAction() {
+            if (auth.currentUser) return true;
+
+            alert('Você precisa fazer login antes de ajudar ou denunciar um animal.');
+            const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            window.location.href = `login.html?returnUrl=${encodeURIComponent(returnUrl)}`;
+            return false;
+        }
+
         function openWhatsApp(pet) {
+            if (!requireLoginForAction()) return;
+
             const telefone = pet?.telefone || pet?.contato || '';
             const numero = telefone.replace(/\D/g, '').slice(0, 11);
 
@@ -292,7 +303,7 @@
             if (!pet) return;
 
             if (!auth.currentUser) {
-                alert('Você precisa estar logado para denunciar um post.');
+                requireLoginForAction();
                 return;
             }
 
@@ -445,7 +456,9 @@
                     }
                 }
 
-                document.getElementById('btn-denunciar-detail').addEventListener('click', () => openDetailReportModal(pet));
+                document.getElementById('btn-denunciar-detail').addEventListener('click', () => {
+                    if (requireLoginForAction()) openDetailReportModal(pet);
+                });
 
                 observeAuthState((user) => {
                     const isOwnPost = matchesUserPost(pet, user?.uid, user?.email);

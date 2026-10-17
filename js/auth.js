@@ -16,6 +16,19 @@ function redirectToHome() {
     window.location.href = window.location.pathname.includes('/pages/') ? '../index.html' : './index.html';
 }
 
+function redirectAfterLogin() {
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+    if (returnUrl) {
+        const destination = new URL(returnUrl, window.location.origin);
+        if (destination.origin === window.location.origin) {
+            window.location.replace(destination.href);
+            return;
+        }
+    }
+
+    redirectToHome();
+}
+
 function getProfilePagePath() {
     return window.location.pathname.includes('/pages/') ? 'perfil.html' : 'pages/perfil.html';
 }
@@ -456,7 +469,7 @@ function setupLoginForm() {
             const user = await waitForAuthenticatedUser();
             showMessage(messageElement, 'Login realizado com sucesso! Redirecionando...', 'success');
             renderAuthState(user);
-            setTimeout(redirectToHome, 400);
+            setTimeout(redirectAfterLogin, 400);
         } catch (error) {
             const errorCode = error.code || '';
             let errorMessage = 'Não foi possível fazer login. Verifique seus dados.';
