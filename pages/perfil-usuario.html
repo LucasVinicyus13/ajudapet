@@ -26,7 +26,16 @@
             <div class="user-profile-header">
                 <img id="other-user-avatar" class="user-profile-avatar" src="../assets/images/usuario.png" alt="Foto de perfil do usuário">
                 <div class="user-profile-meta">
-                    <h2 id="other-user-name" class="user-profile-name">Usuário</h2>
+                    <div class="user-profile-name-row">
+                        <h2 id="other-user-name" class="user-profile-name">Usuário</h2>
+                        <span id="official-profile-badge" class="official-profile-badge" tabindex="0" aria-describedby="official-profile-tooltip" hidden>
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 2.5 14.4 4l2.8-.1 1 2.6 2.2 1.7-.8 2.7.8 2.7-2.2 1.7-1 2.6-2.8-.1L12 19.5l-2.4-1.5-2.8.1-1-2.6-2.2-1.7.8-2.7-.8-2.7 2.2-1.7 1-2.6 2.8.1L12 2.5Zm-1.2 12.3 5.1-5.1-1.4-1.4-3.7 3.7-1.7-1.7-1.4 1.4 3.1 3.1Z"/>
+                            </svg>
+                            <span>Perfil oficial.</span>
+                            <span id="official-profile-tooltip" class="official-profile-tooltip" role="tooltip">Este é um perfil oficial do AjudaPet.</span>
+                        </span>
+                    </div>
                     <div class="user-profile-stats" aria-label="Estatísticas do usuário">
                         <div class="user-profile-stat">
                             <strong id="user-followers-count">0</strong>

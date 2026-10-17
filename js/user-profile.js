@@ -5,11 +5,13 @@ import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/f
 
 const userAvatar = document.getElementById('other-user-avatar');
 const userName = document.getElementById('other-user-name');
+const officialProfileBadge = document.getElementById('official-profile-badge');
 const followButton = document.getElementById('follow-button');
 const postsContainer = document.getElementById('user-posts');
 const followersCountEl = document.getElementById('user-followers-count');
 const followingCountEl = document.getElementById('user-following-count');
 const postsCountEl = document.getElementById('user-posts-count');
+const OFFICIAL_PROFILE_UID = 'u3V4vfaf6QhZsY5bV5zXSc6siH33';
 
 function isSafeAvatarUrl(url) {
     if (!url || typeof url !== 'string') {
@@ -666,6 +668,10 @@ async function initUserProfile() {
     if (!uid) {
         if (postsContainer) postsContainer.innerHTML = '<div class="profile-empty">Usuário não encontrado.</div>';
         return;
+    }
+
+    if (officialProfileBadge) {
+        officialProfileBadge.hidden = uid !== OFFICIAL_PROFILE_UID;
     }
 
     try {
