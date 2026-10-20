@@ -13,6 +13,14 @@
             background: #f6f7fb;
         }
 
+        .detail-page {
+            width: min(100%, 540px);
+            min-height: 100vh;
+            margin: 0 auto;
+            background: var(--bg-light);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+        }
+
         .detail-header {
             position: relative;
             height: 360px;
@@ -115,8 +123,9 @@
         .footer-action {
             position: fixed;
             bottom: 0;
-            left: 0;
-            width: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(100%, 540px);
             background: var(--white);
             padding: 1rem 1.5rem 1.2rem;
             box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.05);
@@ -125,40 +134,42 @@
 </head>
 
 <body>
-    <header class="detail-header">
-        <a href="../index.html" class="btn-back" aria-label="Voltar">←</a>
-        <a href="../index.html" class="home-button" aria-label="Ir para a página inicial" title="Ir para a página inicial">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 2.5 11h2.75v9h5.25v-5.5h3V20h5.25v-9h2.75L12 3Z"/></svg>
-        </a>
-        <img src="../assets/images/placeholder.svg" alt="Pet" class="detail-image" id="pet-image">
-    </header>
+    <div class="detail-page">
+        <header class="detail-header">
+            <a href="../index.html" class="btn-back" aria-label="Voltar">←</a>
+            <a href="../index.html" class="home-button" aria-label="Ir para a página inicial" title="Ir para a página inicial">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 2.5 11h2.75v9h5.25v-5.5h3V20h5.25v-9h2.75L12 3Z"/></svg>
+            </a>
+            <img src="../assets/images/placeholder.svg" alt="Pet" class="detail-image" id="pet-image">
+        </header>
 
-    <main class="detail-content">
-        <div class="container">
-            <div class="detail-info">
-                <span class="pet-status status-urgente detail-status" id="pet-status">urgente</span>
-                <h1 class="pet-name detail-name" id="pet-name">Carregando...</h1>
-                <p class="detail-city" id="pet-city">Carregando localização...</p>
+        <main class="detail-content">
+            <div class="container">
+                <div class="detail-info">
+                    <span class="pet-status status-urgente detail-status" id="pet-status">urgente</span>
+                    <h1 class="pet-name detail-name" id="pet-name">Carregando...</h1>
+                    <p class="detail-city" id="pet-city">Carregando localização...</p>
 
-                <div class="detail-meta">
-                    <span class="detail-meta-item" id="pet-age">Idade</span>
-                    <span class="detail-meta-item" id="pet-category">Categoria</span>
-                </div>
+                    <div class="detail-meta">
+                        <span class="detail-meta-item" id="pet-age">Idade</span>
+                        <span class="detail-meta-item" id="pet-category">Categoria</span>
+                    </div>
 
-                <h3 class="detail-desc-title">História</h3>
-                <p class="detail-desc" id="pet-desc">Carregando descrição...</p>
+                    <h3 class="detail-desc-title">História</h3>
+                    <p class="detail-desc" id="pet-desc">Carregando descrição...</p>
 
-                <div class="detail-actions">
-                    <button class="btn-ajudar" id="btn-ajudar-detail" type="button">AJUDAR</button>
-                    <button class="btn-report" id="btn-denunciar-detail" type="button">Denunciar</button>
+                    <div class="detail-actions">
+                        <button class="btn-ajudar" id="btn-ajudar-detail" type="button">AJUDAR</button>
+                        <button class="btn-report" id="btn-denunciar-detail" type="button">Denunciar</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
 
-    <div class="footer-action">
-        <div class="container">
-            <button class="btn-ajudar" id="btn-ajudar-footer" type="button">AJUDAR</button>
+        <div class="footer-action">
+            <div class="container">
+                <button class="btn-ajudar" id="btn-ajudar-footer" type="button">AJUDAR</button>
+            </div>
         </div>
     </div>
 
