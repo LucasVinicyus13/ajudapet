@@ -6142,13 +6142,25 @@ async function initApp() {
     const feedbackOpenButton = document.getElementById('feedback-open-button');
     const feedbackForm = document.getElementById('feedback-form');
     const feedbackMessage = document.getElementById('feedback-message');
+    const feedbackCharacterCount = document.getElementById('feedback-character-count');
     const feedbackStatus = document.getElementById('feedback-status');
     const feedbackSubmitButton = document.getElementById('feedback-submit-button');
+    const updateFeedbackCharacterCount = () => {
+        if (!feedbackMessage || !feedbackCharacterCount) return;
+        feedbackCharacterCount.textContent = `${feedbackMessage.value.length}/${feedbackMessage.maxLength}`;
+    };
     const closeFeedbackModal = () => {
         if (!feedbackModal) return;
         feedbackModal.classList.remove('visible');
         feedbackModal.setAttribute('aria-hidden', 'true');
     };
+
+    feedbackMessage?.addEventListener('input', updateFeedbackCharacterCount);
+    feedbackForm?.addEventListener('reset', () => {
+        if (!feedbackMessage || !feedbackCharacterCount) return;
+        feedbackCharacterCount.textContent = `${feedbackMessage.defaultValue.length}/${feedbackMessage.maxLength}`;
+    });
+    updateFeedbackCharacterCount();
 
     if (feedbackOpenButton && feedbackModal) {
         feedbackOpenButton.addEventListener('click', () => {

@@ -314,7 +314,10 @@
                 </fieldset>
                 <label class="feedback-field" for="feedback-message">
                     <span>O que você gostaria de nos dizer?</span>
-                    <textarea id="feedback-message" name="feedback" rows="5" required></textarea>
+                    <div class="feedback-message-wrap">
+                        <textarea id="feedback-message" name="feedback" rows="5" maxlength="150" required></textarea>
+                        <span id="feedback-character-count" class="feedback-character-count" aria-hidden="true">0/150</span>
+                    </div>
                 </label>
                 <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
                 <button type="submit" class="btn-submit btn-submit-full" id="feedback-submit-button">Confirmar</button>
