@@ -5738,9 +5738,10 @@ function populateCityOptions(state, selectedCity = '') {
     const citySelect = document.getElementById('addpet-city');
     if (!citySelect) return;
 
-    const cities = STATE_CITIES[state] || [];
+    const stateCode = String(state || '').trim().toUpperCase();
+    const cities = STATE_CITIES[stateCode] || [];
     if (!cities.length) {
-        citySelect.innerHTML = '<option value="">Selecione o estado primeiro</option>';
+        citySelect.innerHTML = '<option value="">Nenhuma cidade disponível para este estado</option>';
         citySelect.disabled = true;
         return;
     }
@@ -5857,6 +5858,8 @@ let isLoadingPets = false;
 
 let editingPetId = null;
 let editingPetImageDataUrl = null;
+let croppedPetImageDataUrl = null;
+let petCropImageObjectUrl = null;
 let reportModal = null;
 let reportReasonInputs = [];
 let reportOtherReasonInput = null;
@@ -6764,23 +6767,6 @@ function closeModal() {
     selectedModalPet = null;
 }
 
-async function fileToDataUrl(file) {
-    const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-
-    let compressed = await compressImageDataUrl(dataUrl);
-
-    if (getDataUrlSizeInBytes(compressed) > 1048487) {
-        compressed = await compressImageDataUrl(dataUrl, { maxWidth: 320, quality: 0.1, targetBytes: 900000, maxAttempts: 5 });
-    }
-
-    return compressed;
-}
-
 function getWhatsAppPhone(pet) {
     const rawValue = pet?.telefone || pet?.contato || '';
     return normalizePhone(rawValue);
@@ -6886,10 +6872,17 @@ function openAddPetModal() {
     resetCategoryPicker();
     editingPetId = null;
     editingPetImageDataUrl = null;
+    croppedPetImageDataUrl = null;
+    const imageInput = document.getElementById('addpet-image');
+    if (imageInput) imageInput.value = '';
+    setPetImagePreview(null);
     ['name', 'birthdate'].forEach((field) => {
         const input = document.getElementById(`addpet-${field}`);
         const unknownCheckbox = document.getElementById(`addpet-${field}-unknown`);
-        if (input) input.disabled = false;
+        if (input) {
+            input.disabled = false;
+            input.required = true;
+        }
         if (unknownCheckbox) unknownCheckbox.checked = false;
     });
     updateBirthdateValidation();
@@ -6897,9 +6890,78 @@ function openAddPetModal() {
     modal.setAttribute('aria-hidden', 'false');
 }
 
+function setPetImagePreview(source) {
+    const preview = document.getElementById('addpet-image-preview');
+    const image = document.getElementById('addpet-image-preview-img');
+    if (!preview || !image) return;
+    if (source) {
+        image.src = source;
+        preview.hidden = false;
+    } else {
+        image.removeAttribute('src');
+        preview.hidden = true;
+    }
+}
+
+function releasePetCropImageUrl() {
+    if (!petCropImageObjectUrl) return;
+    URL.revokeObjectURL(petCropImageObjectUrl);
+    petCropImageObjectUrl = null;
+}
+
+function renderPetCropPreview(image, viewport, zoom, rotation = 0, offsetX = 0, offsetY = 0) {
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const { width, height } = viewport.getBoundingClientRect();
+    const isSideways = rotation % 180 !== 0;
+    const rotatedWidth = isSideways ? image.naturalHeight : image.naturalWidth;
+    const rotatedHeight = isSideways ? image.naturalWidth : image.naturalHeight;
+    const scale = Math.max(width / rotatedWidth, height / rotatedHeight);
+    const scaledWidth = rotatedWidth * scale * zoom;
+    const scaledHeight = rotatedHeight * scale * zoom;
+    const maxOffsetX = Math.max(0, (scaledWidth - width) / 2);
+    const maxOffsetY = Math.max(0, (scaledHeight - height) / 2);
+    const boundedOffsetX = Math.min(maxOffsetX, Math.max(-maxOffsetX, offsetX));
+    const boundedOffsetY = Math.min(maxOffsetY, Math.max(-maxOffsetY, offsetY));
+    image.style.width = `${image.naturalWidth * scale}px`;
+    image.style.height = `${image.naturalHeight * scale}px`;
+    image.style.transform = `translate(calc(-50% + ${boundedOffsetX}px), calc(-50% + ${boundedOffsetY}px)) scale(${zoom}) rotate(${rotation}deg)`;
+    return { offsetX: boundedOffsetX, offsetY: boundedOffsetY };
+}
+
+async function createCroppedPetImage(image, zoom, rotation, offsetX = 0, offsetY = 0, viewport) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 900;
+    const context = canvas.getContext('2d');
+    if (!context) {
+        throw new Error('Não foi possível preparar o recorte da imagem.');
+    }
+
+    const isSideways = rotation % 180 !== 0;
+    const rotatedWidth = isSideways ? image.naturalHeight : image.naturalWidth;
+    const rotatedHeight = isSideways ? image.naturalWidth : image.naturalHeight;
+    const scale = Math.max(canvas.width / rotatedWidth, canvas.height / rotatedHeight) * zoom;
+    const viewportRect = viewport.getBoundingClientRect();
+    context.translate(
+        canvas.width / 2 + offsetX * (canvas.width / viewportRect.width),
+        canvas.height / 2 + offsetY * (canvas.height / viewportRect.height)
+    );
+    context.scale(scale, scale);
+    context.rotate((rotation * Math.PI) / 180);
+    context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+
+    let dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    dataUrl = await compressImageDataUrl(dataUrl, { maxWidth: 1200, quality: 0.72, targetBytes: 900000 });
+    if (getDataUrlSizeInBytes(dataUrl) > 1048487) {
+        dataUrl = await compressImageDataUrl(dataUrl, { maxWidth: 320, quality: 0.1, targetBytes: 900000, maxAttempts: 5 });
+    }
+    return dataUrl;
+}
+
 function syncUnknownInfoField(checkbox, input) {
     if (!checkbox || !input) return;
     input.disabled = checkbox.checked;
+    input.required = !checkbox.checked;
     if (checkbox.checked) input.value = '';
 }
 
@@ -6945,12 +7007,16 @@ function openAddPetModalWithData(pet) {
     const modal = document.getElementById('add-pet-modal');
     if (!modal) return;
     resetCategoryPicker();
+    croppedPetImageDataUrl = null;
+    const imageInput = document.getElementById('addpet-image');
+    if (imageInput) imageInput.value = '';
     // garante que o select esteja populado
     populateCategorySelect();
 
     if (pet) {
         editingPetId = pet.id || null;
         editingPetImageDataUrl = pet.imagem || null;
+        setPetImagePreview(editingPetImageDataUrl);
 
         const nameInput = document.getElementById('addpet-name');
         const nameUnknownCheckbox = document.getElementById('addpet-name-unknown');
@@ -7020,6 +7086,7 @@ function openAddPetModalWithData(pet) {
     } else {
         editingPetId = null;
         editingPetImageDataUrl = null;
+        setPetImagePreview(null);
         ['name', 'birthdate'].forEach((field) => {
             const input = document.getElementById(`addpet-${field}`);
             const unknownCheckbox = document.getElementById(`addpet-${field}-unknown`);
@@ -7053,27 +7120,212 @@ async function initAddPetForm() {
     const nameUnknownCheckbox = document.getElementById('addpet-name-unknown');
     const birthUnknownCheckbox = document.getElementById('addpet-birthdate-unknown');
     const modal = document.getElementById('add-pet-modal');
+    const imageInput = document.getElementById('addpet-image');
+    const cropModal = document.getElementById('pet-image-crop-modal');
+    const cropImage = document.getElementById('pet-image-crop-preview');
+    const cropViewport = document.getElementById('pet-image-crop-viewport');
+    const cropZoom = document.getElementById('pet-image-crop-zoom');
+    const cropZoomValue = document.getElementById('pet-image-crop-zoom-value');
+    const cropRotateButton = document.getElementById('pet-image-crop-rotate');
+    const cropCancelButton = document.getElementById('pet-image-crop-cancel');
+    const cropApplyButton = document.getElementById('pet-image-crop-apply');
 
     categorySelect = document.getElementById('addpet-category');
     categorySelectedList = document.getElementById('category-selected-list');
     categoryOptionsList = document.getElementById('category-options-list');
     const stateSelect = document.getElementById('addpet-state');
     const citySelect = document.getElementById('addpet-city');
-    if (!form || !modal || !categorySelect || !categorySelectedList || !categoryOptionsList || !stateSelect || !citySelect) return;
+    if (!form || !modal || !imageInput || !categorySelect || !categorySelectedList
+        || !categoryOptionsList || !stateSelect || !citySelect) return;
 
     populateCategorySelect();
     syncCategoryPicker();
 
     [[nameUnknownCheckbox, nameInput], [birthUnknownCheckbox, birthInput]].forEach(([checkbox, input]) => {
-        if (checkbox) {
-            checkbox.addEventListener('change', () => syncUnknownInfoField(checkbox, input));
+        if (!checkbox || !input) return;
+        checkbox.addEventListener('change', () => {
             syncUnknownInfoField(checkbox, input);
-        }
+            if (input === birthInput) updateBirthdateValidation();
+        });
+        syncUnknownInfoField(checkbox, input);
     });
+
+    const setCityControl = (selectedCity = '') => {
+        const state = stateSelect.value.trim().toUpperCase();
+        if (!state) {
+            citySelect.innerHTML = '<option value="">Selecione o estado primeiro</option>';
+            citySelect.disabled = true;
+            return;
+        }
+        populateCityOptions(state, selectedCity);
+    };
+
+    stateSelect.addEventListener('change', () => setCityControl());
+    setCityControl();
+
+    const hasCropControls = cropModal && cropImage && cropViewport && cropZoom && cropZoomValue && cropRotateButton
+        && cropCancelButton && cropApplyButton;
+    const closeCropModal = (discardSelection = false) => {
+        if (!hasCropControls) return;
+        cropModal.classList.remove('visible');
+        cropModal.setAttribute('aria-hidden', 'true');
+        cropImage.removeAttribute('src');
+        releasePetCropImageUrl();
+        imageInput.value = '';
+        if (discardSelection) {
+            croppedPetImageDataUrl = null;
+            setPetImagePreview(editingPetImageDataUrl);
+        }
+    };
+
+    if (hasCropControls) {
+        let cropOffsetX = 0;
+        let cropOffsetY = 0;
+        let cropRotation = 0;
+        let activePointerId = null;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+
+        const updateCropPreview = () => {
+            const offsets = renderPetCropPreview(
+                cropImage,
+                cropViewport,
+                Number(cropZoom.value),
+                cropRotation,
+                cropOffsetX,
+                cropOffsetY
+            );
+            if (offsets) {
+                cropOffsetX = offsets.offsetX;
+                cropOffsetY = offsets.offsetY;
+            }
+        };
+
+        cropZoom.addEventListener('input', () => {
+            cropZoomValue.value = `${Number(cropZoom.value).toFixed(1)}×`;
+            updateCropPreview();
+        });
+
+        cropRotateButton.addEventListener('click', () => {
+            cropRotation = (cropRotation + 90) % 360;
+            updateCropPreview();
+        });
+
+        cropViewport.addEventListener('pointerdown', (event) => {
+            if (!cropImage.naturalWidth || cropApplyButton.disabled) return;
+            activePointerId = event.pointerId;
+            lastPointerX = event.clientX;
+            lastPointerY = event.clientY;
+            cropViewport.setPointerCapture(event.pointerId);
+            cropViewport.classList.add('is-dragging');
+            event.preventDefault();
+        });
+
+        cropViewport.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== activePointerId) return;
+            cropOffsetX += event.clientX - lastPointerX;
+            cropOffsetY += event.clientY - lastPointerY;
+            lastPointerX = event.clientX;
+            lastPointerY = event.clientY;
+            updateCropPreview();
+        });
+
+        const finishCropDrag = (event) => {
+            if (event.pointerId !== activePointerId) return;
+            activePointerId = null;
+            cropViewport.classList.remove('is-dragging');
+            if (cropViewport.hasPointerCapture(event.pointerId)) {
+                cropViewport.releasePointerCapture(event.pointerId);
+            }
+        };
+
+        cropViewport.addEventListener('pointerup', finishCropDrag);
+        cropViewport.addEventListener('pointercancel', finishCropDrag);
+        cropViewport.addEventListener('lostpointercapture', finishCropDrag);
+
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files?.[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                imageInput.value = '';
+                alert('Selecione um arquivo de imagem válido.');
+                return;
+            }
+
+            croppedPetImageDataUrl = null;
+            setPetImagePreview(null);
+            releasePetCropImageUrl();
+            petCropImageObjectUrl = URL.createObjectURL(file);
+            cropOffsetX = 0;
+            cropOffsetY = 0;
+            cropRotation = 0;
+            cropZoom.value = '1';
+            cropZoomValue.value = '1,0×';
+            cropImage.onload = () => {
+                updateCropPreview();
+                cropModal.classList.add('visible');
+                cropModal.setAttribute('aria-hidden', 'false');
+                cropZoom.focus();
+            };
+            cropImage.onerror = () => {
+                closeCropModal(true);
+                alert('Não foi possível abrir esta imagem. Tente selecionar outro arquivo.');
+            };
+            cropImage.src = petCropImageObjectUrl;
+        });
+
+        cropCancelButton.addEventListener('click', () => closeCropModal(true));
+        cropApplyButton.addEventListener('click', async () => {
+            cropApplyButton.disabled = true;
+            cropCancelButton.disabled = true;
+            cropZoom.disabled = true;
+            cropRotateButton.disabled = true;
+            try {
+                croppedPetImageDataUrl = await createCroppedPetImage(
+                    cropImage,
+                    Number(cropZoom.value),
+                    cropRotation,
+                    cropOffsetX,
+                    cropOffsetY,
+                    cropViewport
+                );
+                setPetImagePreview(croppedPetImageDataUrl);
+                closeCropModal();
+            } catch (error) {
+                console.error('Erro ao recortar imagem do animal:', error);
+                alert('Não foi possível recortar esta imagem. Tente novamente.');
+            } finally {
+                cropApplyButton.disabled = false;
+                cropCancelButton.disabled = false;
+                cropZoom.disabled = false;
+                cropRotateButton.disabled = false;
+            }
+        });
+
+        cropModal.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !cropApplyButton.disabled) closeCropModal(true);
+        });
+    } else {
+        imageInput.addEventListener('change', () => {
+            if (imageInput.files?.length) {
+                alert('O recorte de imagem não está disponível nesta página. Atualize-a e tente novamente.');
+                imageInput.value = '';
+            }
+        });
+    }
+
     form.addEventListener('reset', () => {
-        if (nameInput) nameInput.disabled = false;
-        if (birthInput) birthInput.disabled = false;
-        setTimeout(updateBirthdateValidation, 0);
+        croppedPetImageDataUrl = null;
+        editingPetImageDataUrl = null;
+        setPetImagePreview(null);
+        closeCropModal(true);
+        setTimeout(() => {
+            [[nameUnknownCheckbox, nameInput], [birthUnknownCheckbox, birthInput]].forEach(([checkbox, input]) => {
+                if (checkbox && input) syncUnknownInfoField(checkbox, input);
+            });
+            setCityControl();
+            updateBirthdateValidation();
+        }, 0);
     });
 
     if (birthInput) {
@@ -7084,19 +7336,6 @@ async function initAddPetForm() {
         birthUnknownCheckbox.addEventListener('change', updateBirthdateValidation);
     }
     updateBirthdateValidation();
-
-    const setCityControl = (selectedCity = '') => {
-        const hasState = Boolean(stateSelect.value);
-        if (!hasState) {
-            citySelect.innerHTML = '<option value="">Selecione o estado primeiro</option>';
-            citySelect.disabled = true;
-        } else {
-            populateCityOptions(stateSelect.value, selectedCity);
-        }
-    };
-
-    stateSelect.addEventListener('change', () => setCityControl());
-    setCityControl();
 
     if (contactInput) {
         contactInput.addEventListener('input', (event) => {
@@ -7145,7 +7384,6 @@ async function initAddPetForm() {
         isSubmittingPet = true;
         setSubmitting(true);
 
-        const imageInput = document.getElementById('addpet-image');
         const cityInput = document.getElementById('addpet-city');
         const stateInput = document.getElementById('addpet-state');
         const statusInput = document.getElementById('addpet-status');
@@ -7156,9 +7394,13 @@ async function initAddPetForm() {
         const currentUser = auth.currentUser;
 
         let imagem = null;
-        if (imageInput.files.length) {
-            const file = imageInput.files[0];
-            imagem = await fileToDataUrl(file);
+        if (croppedPetImageDataUrl) {
+            imagem = croppedPetImageDataUrl;
+        } else if (imageInput.files.length) {
+            alert('Conclua o recorte da foto antes de publicar.');
+            isSubmittingPet = false;
+            setSubmitting(false);
+            return;
         } else if (editingPetImageDataUrl) {
             imagem = editingPetImageDataUrl;
         }

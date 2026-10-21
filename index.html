@@ -194,6 +194,10 @@
                     <span>Fotos do animal</span>
                     <input id="addpet-image" type="file" accept="image/*">
                 </label>
+                <div id="addpet-image-preview" class="pet-image-upload-preview" hidden>
+                    <img id="addpet-image-preview-img" alt="Prévia da foto recortada do animal">
+                    <span>Prévia da foto</span>
+                </div>
                 <label class="form-field">
                     <span>Nome</span>
                     <input id="addpet-name" type="text" placeholder="Nome do animal" required>
@@ -280,6 +284,38 @@
                 <button type="button" id="add-pet-cancel" class="btn-filter-secondary">Cancelar</button>
             </form>
         </div>
+    </div>
+    <div id="pet-image-crop-modal" class="pet-image-crop-modal" aria-hidden="true">
+        <section class="pet-image-crop-card" role="dialog" aria-modal="true" aria-labelledby="pet-image-crop-title">
+            <div class="pet-image-crop-header">
+                <div>
+                    <p class="filter-modal-eyebrow">Foto do animal</p>
+                    <h2 id="pet-image-crop-title" class="filter-modal-title">Ajustar enquadramento</h2>
+                </div>
+            </div>
+            <p class="pet-image-crop-copy">Arraste a foto para ajustar o enquadramento e use o zoom se precisar.</p>
+            <div id="pet-image-crop-viewport" class="pet-image-crop-viewport">
+                <img id="pet-image-crop-preview" alt="Prévia do recorte da foto do animal">
+            </div>
+            <div class="pet-image-crop-controls">
+                <label class="pet-image-crop-zoom-label" for="pet-image-crop-zoom">
+                    Zoom
+                    <output id="pet-image-crop-zoom-value" for="pet-image-crop-zoom">1,0×</output>
+                </label>
+                <button type="button" id="pet-image-crop-rotate" class="btn-filter-secondary" aria-label="Girar imagem 90 graus" title="Girar imagem 90 graus">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 14v-3a7 7 0 0 1 7-7h5"/>
+                        <path d="m12 1 4 3-4 3"/>
+                        <path d="M9 10h11v11H9z"/>
+                    </svg>
+                </button>
+            </div>
+            <input id="pet-image-crop-zoom" class="pet-image-crop-zoom" type="range" min="1" max="3" step="0.1" value="1">
+            <div class="pet-image-crop-actions">
+                <button type="button" id="pet-image-crop-cancel" class="btn-filter-secondary">Cancelar</button>
+                <button type="button" id="pet-image-crop-apply" class="btn-submit">Usar foto</button>
+            </div>
+        </section>
     </div>
 
     <footer class="app-footer">

@@ -15,6 +15,7 @@
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     --border-radius: 20px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --pet-image-aspect-ratio: 4 / 3;
 }
 
 * {
@@ -1339,6 +1340,25 @@ img, svg {
     pointer-events: auto;
 }
 
+.pet-image-upload-preview {
+    display: grid;
+    justify-items: start;
+    gap: 0.4rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.pet-image-upload-preview[hidden] {
+    display: none;
+}
+
+.pet-image-upload-preview img {
+    width: min(100%, 240px);
+    aspect-ratio: var(--pet-image-aspect-ratio);
+    object-fit: cover;
+    border-radius: 14px;
+}
+
 .add-pet-card {
     width: min(560px, 100%);
     background: var(--white);
@@ -1885,7 +1905,9 @@ img, svg {
 .modal-image-wrapper {
     position: relative;
     width: 100%;
-    min-height: 240px;
+    aspect-ratio: var(--pet-image-aspect-ratio);
+    flex: 0 0 auto;
+    overflow: hidden;
 }
 
 .modal-header-row {
@@ -1915,14 +1937,16 @@ img, svg {
 
 .modal-image {
     width: 100%;
-    height: 240px;
+    height: 100%;
+    aspect-ratio: var(--pet-image-aspect-ratio);
     object-fit: cover;
     display: block;
 }
 
 .modal-content {
     padding: 1rem 1.5rem 1.5rem;
-    max-height: calc(90vh - 240px);
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: grid;
     gap: 0.5rem;
@@ -2546,6 +2570,144 @@ img, svg {
     height: 170px;
     object-fit: cover;
     display: block;
+}
+
+.verification-pet-image {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    aspect-ratio: var(--pet-image-aspect-ratio);
+    object-fit: cover;
+    border-radius: 24px;
+    display: block;
+    margin: 0 auto 1.5rem;
+}
+
+.pet-image-crop-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.68);
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition);
+}
+
+.pet-image-crop-modal.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.pet-image-crop-card {
+    width: min(560px, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 24px;
+    background: var(--white);
+    box-shadow: var(--shadow);
+}
+
+.pet-image-crop-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.pet-image-crop-copy {
+    color: var(--text-muted);
+}
+
+.pet-image-crop-viewport {
+    position: relative;
+    width: min(100%, 480px, 56vh);
+    aspect-ratio: var(--pet-image-aspect-ratio);
+    overflow: hidden;
+    justify-self: center;
+    border-radius: 16px;
+    background: #e9eef2;
+    cursor: grab;
+    touch-action: none;
+    flex: none;
+}
+
+.pet-image-crop-viewport.is-dragging {
+    cursor: grabbing;
+}
+
+.pet-image-crop-viewport img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    max-width: none;
+    object-fit: initial;
+    transform-origin: center;
+    user-select: none;
+    pointer-events: none;
+}
+
+.pet-image-crop-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.pet-image-crop-zoom-label {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    color: var(--secondary);
+    font-weight: 700;
+}
+
+.pet-image-crop-controls button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    flex: none;
+    padding: 0;
+    border-radius: 12px;
+}
+
+.pet-image-crop-controls button svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pet-image-crop-zoom {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+    flex: none;
+}
+
+.pet-image-crop-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.pet-image-crop-actions button {
+    min-width: 120px;
 }
 
 .profile-post-card .post-header {
