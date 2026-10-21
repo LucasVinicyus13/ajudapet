@@ -300,10 +300,10 @@
             <div class="story-main">
                 <p class="partner-label">NOVO PATROCINADOR</p>
                 <div class="logo-frame">
-                    <img class="sponsor-logo" src="assets/images/patrocinador-1.png" alt="Logo do Mimo Pet">
+                    <img class="sponsor-logo" src="assets/images/patrocinador-2.jpg" alt="Logo do Rancho Rural">
                 </div>
                 <!-- Edite o nome do patrocinador nesta linha. -->
-                <h1 id="sponsor-name">Mimo Pet</h1>
+                <h1 id="sponsor-name">Rancho Rural</h1>
                 <!-- Edite o texto de apresentação do patrocinador abaixo. -->
                 <p class="description">Apoio que ajuda a transformar vidas e aproximar animais de um novo lar.</p>
                 <footer class="story-footer">Uma parceria que transforma histórias</footer>
@@ -351,9 +351,9 @@
 
             try {
                 await document.fonts.ready;
+                const htmlToImage = await loadHtmlToImage();
                 const images = [...story.querySelectorAll('img')];
                 await Promise.all(images.map((image) => image.decode()));
-                const htmlToImage = await loadHtmlToImage();
                 const pixelRatio = 1080 / story.clientWidth;
                 const blob = await htmlToImage.toBlob(story, {
                     pixelRatio,
