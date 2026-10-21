@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F7F9FB">
+    <meta name="description" content="Conheça quem apoia o AjudaPet e ajuda a transformar histórias.">
+    <title>Patrocinador AjudaPet</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            color: #1A1A1A;
+            background: #F7F9FB;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: #E9EEF0;
+        }
+
+        .page {
+            width: min(100%, 405px);
+        }
+
+        .sponsor-card {
+            position: relative;
+            isolation: isolate;
+            width: 100%;
+            aspect-ratio: 9 / 16;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 24px;
+            background: #F5F1E8;
+            box-shadow: 0 20px 55px rgba(20, 48, 54, .2);
+        }
+
+        .story-top {
+            position: relative;
+            min-height: 40%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: space-between;
+            overflow: hidden;
+            padding: clamp(24px, 7vw, 36px);
+            background: #FF6B35;
+            color: #FFFFFF;
+        }
+
+        .story-top::after {
+            position: absolute;
+            right: -70px;
+            bottom: -145px;
+            width: 260px;
+            height: 260px;
+            border: 35px solid rgba(255, 255, 255, .12);
+            border-radius: 50%;
+            content: "";
+            pointer-events: none;
+        }
+
+        .brand {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0px 13px;
+            border-radius: 999px;
+            background: #FFFFFF;
+            color: #004E64;
+            font-size: .98rem;
+            font-weight: 800;
+            letter-spacing: .025em;
+        }
+
+        .brand span {
+            color: #FF6B35;
+        }
+
+        .story-heading {
+            position: relative;
+            z-index: 1;
+            max-width: 300px;
+            margin: 30px 0 0;
+            color: #FFFFFF;
+            font-size: clamp(2rem, 8vw, 3.1rem);
+            font-weight: 700;
+            letter-spacing: -.06em;
+            line-height: .98;
+            text-align: left;
+            text-wrap: balance;
+        }
+
+        .story-main {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 clamp(24px, 7vw, 36px) 26px;
+            text-align: center;
+        }
+
+        .partner-label {
+            margin: 47px 0 10px;
+            color: #738080;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+
+        .logo-frame {
+            position: relative;
+            z-index: 2;
+            width: min(76%, 245px);
+            height: clamp(112px, 19vh, 148px);
+            min-width: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr);
+            place-items: center;
+            margin-top: -42px;
+            padding: 18px;
+            overflow: hidden;
+            border: 6px solid #F5F1E8;
+            border-radius: 24px;
+            background: #FFFFFF;
+            box-shadow: 0 12px 30px rgba(0, 78, 100, .12);
+            color: #738080;
+            font-size: .9rem;
+        }
+
+        .sponsor-logo {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            object-fit: contain;
+        }
+
+        h1 {
+            margin: 14px 0 0;
+            color: #004E64;
+            font-size: clamp(1.55rem, 6.4vw, 2.2rem);
+            font-weight: 750;
+            letter-spacing: -.04em;
+            line-height: 1.05;
+            overflow-wrap: anywhere;
+            text-wrap: balance;
+        }
+
+        .description {
+            max-width: 295px;
+            margin: 12px auto 0;
+            color: #526364;
+            font-size: clamp(.84rem, 3.5vw, .94rem);
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+            white-space: pre-line;
+        }
+
+        .story-footer {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            margin-top: auto;
+            padding-top: 18px;
+            color: #004E64;
+            font-size: .72rem;
+            font-weight: 750;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .story-footer::before {
+            width: 22px;
+            height: 3px;
+            border-radius: 5px;
+            background: #FF6B35;
+            content: "";
+        }
+
+        .button {
+            min-height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 22px;
+            border: 0;
+            border-radius: 999px;
+            background: #004E64;
+            box-shadow: 0 8px 20px rgba(0, 78, 100, .2);
+            color: #FFFFFF;
+            cursor: pointer;
+            font: inherit;
+            font-size: .9rem;
+            font-weight: 750;
+            transition: transform .2s ease, background .2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            background: #FF6B35;
+        }
+
+        .download-status {
+            min-height: 1.25em;
+            margin: 0;
+            color: #004E64;
+            font-size: .85rem;
+            text-align: center;
+        }
+
+        .home-link {
+            color: #526364;
+            font-size: .84rem;
+            text-align: center;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        a:focus-visible,
+        button:focus-visible {
+            outline: 3px solid #004E64;
+            outline-offset: 3px;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                justify-content: flex-start;
+                gap: 12px;
+                padding: 12px 0 16px;
+            }
+
+            .sponsor-card {
+                border-radius: 0;
+            }
+        }
+
+        @media (max-height: 700px) {
+            .story-top {
+                min-height: 38%;
+                padding-top: 22px;
+                padding-bottom: 22px;
+            }
+
+            .story-heading {
+                margin-top: 18px;
+            }
+
+            .partner-label {
+                margin-top: 42px;
+            }
+
+            .logo-frame {
+                height: 96px;
+                margin-top: -34px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="sponsor-card" id="sponsor-story" aria-labelledby="sponsor-name">
+            <header class="story-top">
+                <div class="brand" aria-label="AjudaPet"><p>Ajuda<span>Pet</span></p></div>
+                <h2 class="story-heading">Juntos, cuidamos de quem precisa.</h2>
+            </header>
+
+            <div class="story-main">
+                <p class="partner-label">Esta causa tem o apoio de</p>
+                <div class="logo-frame">
+                    <img class="sponsor-logo" src="assets/images/favicon.png" alt="Logo do Nome do Patrocinador">
+                </div>
+                <!-- Edite o nome do patrocinador nesta linha. -->
+                <h1 id="sponsor-name">Nome do patrocinador</h1>
+                <!-- Edite o texto de apresentação do patrocinador abaixo. -->
+                <p class="description">A parceria com o AjudaPet ajuda essa missão a chegar mais longe: conectar pessoas a animais que precisam de cuidado, proteção e um lar.</p>
+                <footer class="story-footer">Uma parceria que transforma histórias</footer>
+            </div>
+        </section>
+    </main>
+
+    <button class="button" id="download-button" type="button">Baixar imagem</button>
+    <p class="download-status" id="download-status" role="status" aria-live="polite"></p>
+    <a class="home-link" href="./index.html">Conheça o AjudaPet</a>
+
+    <script>
+        const story = document.getElementById('sponsor-story');
+        const downloadButton = document.getElementById('download-button');
+        const downloadStatus = document.getElementById('download-status');
+        let htmlToImagePromise;
+
+        function loadHtmlToImage() {
+            if (!htmlToImagePromise) {
+                htmlToImagePromise = new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js';
+                    script.crossOrigin = 'anonymous';
+                    script.onload = () => {
+                        if (typeof window.htmlToImage?.toBlob === 'function') {
+                            resolve(window.htmlToImage);
+                        } else {
+                            reject(new Error('A biblioteca de imagem não foi inicializada.'));
+                        }
+                    };
+                    script.onerror = () => reject(new Error('Não foi possível carregar a biblioteca de imagem.'));
+                    document.head.append(script);
+                }).catch((error) => {
+                    htmlToImagePromise = null;
+                    throw error;
+                });
+            }
+            return htmlToImagePromise;
+        }
+
+        async function downloadStoryImage() {
+            downloadButton.disabled = true;
+            downloadButton.textContent = 'Preparando imagem...';
+            downloadStatus.textContent = '';
+
+            try {
+                await document.fonts.ready;
+                const images = [...story.querySelectorAll('img')];
+                await Promise.all(images.map((image) => image.decode()));
+                const htmlToImage = await loadHtmlToImage();
+                const pixelRatio = 1080 / story.clientWidth;
+                const blob = await htmlToImage.toBlob(story, {
+                    pixelRatio,
+                    cacheBust: true
+                });
+                if (!blob) {
+                    throw new Error('O navegador não conseguiu gerar o arquivo PNG.');
+                }
+
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = 'ajudapet-patrocinador.png';
+                document.body.append(link);
+                link.click();
+                link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                downloadStatus.textContent = 'Imagem PNG baixada.';
+            } catch (error) {
+                console.error('Não foi possível gerar a imagem do patrocinador:', error);
+                downloadStatus.textContent = error instanceof Error
+                    ? error.message
+                    : 'Não foi possível gerar a imagem. Verifique sua conexão e tente novamente.';
+            } finally {
+                downloadButton.disabled = false;
+                downloadButton.textContent = 'Baixar imagem';
+            }
+        }
+
+        downloadButton.addEventListener('click', () => {
+            void downloadStoryImage();
+        });
+    </script>
+</body>
+</html>

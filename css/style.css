@@ -2197,6 +2197,42 @@ img, svg {
     margin: 0.5rem 0 0;
 }
 
+.sponsors {
+    margin-top: 1.5rem;
+}
+
+.sponsors-title {
+    margin: 0 0 0.75rem;
+    color: var(--text-dark);
+    font-size: 1rem;
+}
+
+.sponsors-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.sponsor-item {
+    display: grid;
+    width: min(180px, 100%);
+    min-height: 90px;
+    place-items: center;
+    padding: 0.75rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    color: var(--text-muted);
+    background: #fff;
+}
+
+.sponsor-item img {
+    display: block;
+    max-width: 100%;
+    max-height: 90px;
+    object-fit: contain;
+}
+
 .feedback-modal {
     z-index: 320;
 }
