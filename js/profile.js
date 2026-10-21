@@ -434,10 +434,107 @@ function setupAvatarUpload() {
     const avatarInput = document.getElementById('profile-avatar-input');
     const avatarButton = document.getElementById('profile-avatar-button');
     const avatarRemoveButton = document.getElementById('profile-avatar-remove-button');
+    const cropModal = document.getElementById('profile-avatar-crop-modal');
+    const cropViewport = document.getElementById('profile-avatar-crop-viewport');
+    const cropImage = document.getElementById('profile-avatar-crop-preview');
+    const cropZoom = document.getElementById('profile-avatar-crop-zoom');
+    const cropZoomValue = document.getElementById('profile-avatar-crop-zoom-value');
+    const cropRotateButton = document.getElementById('profile-avatar-crop-rotate');
+    const cropCancelButton = document.getElementById('profile-avatar-crop-cancel');
+    const cropApplyButton = document.getElementById('profile-avatar-crop-apply');
 
-    if (!avatar || !avatarInput || !avatarButton || !avatarRemoveButton) return;
+    if (!avatar || !avatarInput || !avatarButton || !avatarRemoveButton || !cropModal
+        || !cropViewport || !cropImage || !cropZoom || !cropZoomValue || !cropRotateButton
+        || !cropCancelButton || !cropApplyButton) return;
 
     setupProfileImagePreview(avatar);
+
+    let cropImageUrl = null;
+    let cropOffsetX = 0;
+    let cropOffsetY = 0;
+    let cropRotation = 0;
+    let activePointerId = null;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+
+    const revokeCropImageUrl = () => {
+        if (!cropImageUrl) return;
+        URL.revokeObjectURL(cropImageUrl);
+        cropImageUrl = null;
+    };
+
+    const closeCropModal = (discardSelection = false) => {
+        cropModal.classList.remove('visible');
+        cropModal.setAttribute('aria-hidden', 'true');
+        cropImage.removeAttribute('src');
+        avatarInput.value = '';
+        revokeCropImageUrl();
+        if (discardSelection) {
+            cropOffsetX = 0;
+            cropOffsetY = 0;
+            cropRotation = 0;
+        }
+    };
+
+    const updateCropPreview = () => {
+        if (!cropImage.naturalWidth || !cropImage.naturalHeight) return;
+        const { width, height } = cropViewport.getBoundingClientRect();
+        const isSideways = cropRotation % 180 !== 0;
+        const rotatedWidth = isSideways ? cropImage.naturalHeight : cropImage.naturalWidth;
+        const rotatedHeight = isSideways ? cropImage.naturalWidth : cropImage.naturalHeight;
+        const scale = Math.max(width / rotatedWidth, height / rotatedHeight);
+        const scaledWidth = rotatedWidth * scale * Number(cropZoom.value);
+        const scaledHeight = rotatedHeight * scale * Number(cropZoom.value);
+        const maxOffsetX = Math.max(0, (scaledWidth - width) / 2);
+        const maxOffsetY = Math.max(0, (scaledHeight - height) / 2);
+        cropOffsetX = Math.min(maxOffsetX, Math.max(-maxOffsetX, cropOffsetX));
+        cropOffsetY = Math.min(maxOffsetY, Math.max(-maxOffsetY, cropOffsetY));
+        cropImage.style.width = `${cropImage.naturalWidth * scale}px`;
+        cropImage.style.height = `${cropImage.naturalHeight * scale}px`;
+        cropImage.style.transform = `translate(calc(-50% + ${cropOffsetX}px), calc(-50% + ${cropOffsetY}px)) scale(${cropZoom.value}) rotate(${cropRotation}deg)`;
+    };
+
+    cropZoom.addEventListener('input', () => {
+        cropZoomValue.value = `${Number(cropZoom.value).toFixed(1)}×`;
+        updateCropPreview();
+    });
+
+    cropRotateButton.addEventListener('click', () => {
+        cropRotation = (cropRotation + 90) % 360;
+        updateCropPreview();
+    });
+
+    cropViewport.addEventListener('pointerdown', (event) => {
+        if (!cropImage.naturalWidth || cropApplyButton.disabled) return;
+        activePointerId = event.pointerId;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        cropViewport.setPointerCapture(event.pointerId);
+        cropViewport.classList.add('is-dragging');
+        event.preventDefault();
+    });
+
+    cropViewport.addEventListener('pointermove', (event) => {
+        if (event.pointerId !== activePointerId) return;
+        cropOffsetX += event.clientX - lastPointerX;
+        cropOffsetY += event.clientY - lastPointerY;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        updateCropPreview();
+    });
+
+    const finishCropDrag = (event) => {
+        if (event.pointerId !== activePointerId) return;
+        activePointerId = null;
+        cropViewport.classList.remove('is-dragging');
+        if (cropViewport.hasPointerCapture(event.pointerId)) {
+            cropViewport.releasePointerCapture(event.pointerId);
+        }
+    };
+
+    cropViewport.addEventListener('pointerup', finishCropDrag);
+    cropViewport.addEventListener('pointercancel', finishCropDrag);
+    cropViewport.addEventListener('lostpointercapture', finishCropDrag);
 
     avatarButton.addEventListener('click', () => {
         avatarInput.click();
@@ -457,34 +554,87 @@ function setupAvatarUpload() {
         }
     });
 
-    avatarInput.addEventListener('change', async (event) => {
+    avatarInput.addEventListener('change', (event) => {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         if (!currentUser) {
             alert('Faça login para alterar sua foto de perfil.');
+            avatarInput.value = '';
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = async () => {
-            const dataUrl = reader.result;
-            avatar.src = dataUrl;
+        if (!file.type.startsWith('image/')) {
+            avatarInput.value = '';
+            alert('Selecione um arquivo de imagem válido.');
+            return;
+        }
 
-            try {
-                const firebaseUrl = await setProfileImage(dataUrl, currentUser.uid);
-                if (firebaseUrl) {
-                    avatar.src = firebaseUrl;
-                }
-                const menu = document.getElementById('profile-card-menu');
-                if (menu) menu.classList.add('hidden');
-            } catch (error) {
-                console.error('Erro ao salvar avatar:', error);
-                alert('Erro ao salvar a foto de perfil no Firebase. Tente novamente.');
-            }
+        revokeCropImageUrl();
+        cropImageUrl = URL.createObjectURL(file);
+        cropOffsetX = 0;
+        cropOffsetY = 0;
+        cropRotation = 0;
+        cropZoom.value = '1';
+        cropZoomValue.value = '1,0×';
+        cropImage.onload = () => {
+            updateCropPreview();
+            cropModal.classList.add('visible');
+            cropModal.setAttribute('aria-hidden', 'false');
+            cropZoom.focus();
         };
-        reader.readAsDataURL(file);
-        avatarInput.value = '';
+        cropImage.onerror = () => {
+            closeCropModal(true);
+            alert('Não foi possível abrir esta imagem. Tente selecionar outro arquivo.');
+        };
+        cropImage.src = cropImageUrl;
+    });
+
+    cropCancelButton.addEventListener('click', () => closeCropModal(true));
+    cropModal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !cropApplyButton.disabled) closeCropModal(true);
+    });
+
+    cropApplyButton.addEventListener('click', async () => {
+        cropApplyButton.disabled = true;
+        cropCancelButton.disabled = true;
+        cropZoom.disabled = true;
+        cropRotateButton.disabled = true;
+
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Não foi possível preparar o recorte da foto de perfil.');
+
+            const isSideways = cropRotation % 180 !== 0;
+            const rotatedWidth = isSideways ? cropImage.naturalHeight : cropImage.naturalWidth;
+            const rotatedHeight = isSideways ? cropImage.naturalWidth : cropImage.naturalHeight;
+            const scale = Math.max(canvas.width / rotatedWidth, canvas.height / rotatedHeight) * Number(cropZoom.value);
+            const viewportRect = cropViewport.getBoundingClientRect();
+            context.translate(
+                canvas.width / 2 + cropOffsetX * (canvas.width / viewportRect.width),
+                canvas.height / 2 + cropOffsetY * (canvas.height / viewportRect.height)
+            );
+            context.scale(scale, scale);
+            context.rotate((cropRotation * Math.PI) / 180);
+            context.drawImage(cropImage, -cropImage.naturalWidth / 2, -cropImage.naturalHeight / 2);
+
+            const firebaseUrl = await setProfileImage(canvas.toDataURL('image/jpeg', 0.9), currentUser.uid);
+            if (firebaseUrl) avatar.src = firebaseUrl;
+            const menu = document.getElementById('profile-card-menu');
+            if (menu) menu.classList.add('hidden');
+            closeCropModal();
+        } catch (error) {
+            console.error('Erro ao salvar avatar:', error);
+            alert('Erro ao salvar a foto de perfil no Firebase. Tente novamente.');
+        } finally {
+            cropApplyButton.disabled = false;
+            cropCancelButton.disabled = false;
+            cropZoom.disabled = false;
+            cropRotateButton.disabled = false;
+        }
     });
 }
 

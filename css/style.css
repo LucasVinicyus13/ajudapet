@@ -2642,6 +2642,12 @@ img, svg {
     cursor: grabbing;
 }
 
+.profile-avatar-crop-viewport {
+    width: min(100%, 360px, 48vh);
+    aspect-ratio: 1;
+    border-radius: 50%;
+}
+
 .pet-image-crop-viewport img {
     position: absolute;
     top: 50%;
