@@ -2197,6 +2197,19 @@ img, svg {
     margin: 0.5rem 0 0;
 }
 
+.footer-credit {
+    margin-top: 0.9rem;
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--secondary);
+}
+
+.footer-credit strong {
+    color: var(--primary);
+    font-weight: 800;
+}
+
 .sponsors {
     margin-top: 1.5rem;
 }
